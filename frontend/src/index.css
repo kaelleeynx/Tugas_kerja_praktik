@@ -2,18 +2,18 @@
 
 @layer base {
   :root {
-    /* Brand Colors - Indigo/Blue */
-    --primary-50: 238 242 255;
-    --primary-100: 224 231 255;
-    --primary-200: 199 210 254;
-    --primary-300: 165 180 252;
-    --primary-400: 129 140 248;
-    --primary-500: 99 102 241;  /* Main Brand Color */
-    --primary-600: 79 70 229;
-    --primary-700: 67 56 202;
-    --primary-800: 55 48 163;
-    --primary-900: 49 46 129;
-    --primary-950: 30 27 75;
+    /* Brand Colors - Monochrome/Slate */
+    --primary-50: 248 250 252;
+    --primary-100: 241 245 249;
+    --primary-200: 226 232 240;
+    --primary-300: 203 213 225;
+    --primary-400: 148 163 184;
+    --primary-500: 100 116 139;
+    --primary-600: 71 85 105;
+    --primary-700: 51 65 85;
+    --primary-800: 30 41 59;
+    --primary-900: 15 23 42;
+    --primary-950: 2 6 23;
 
     /* Neutral Colors - Slate */
     --neutral-50: 248 250 252;
@@ -44,7 +44,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%; /* Darker */
 
-    --primary: 243.4 75.4% 58.6%; /* Indigo 500 */
+    --primary: 222.2 47.4% 11.2%; /* Solid Dark */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -61,7 +61,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 243.4 75.4% 58.6%;
+    --ring: 222.2 47.4% 11.2%;
 
     --radius: 0.75rem;
   }
@@ -76,7 +76,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 243.4 75.4% 58.6%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -93,7 +93,7 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 243.4 75.4% 58.6%;
+    --ring: 210 40% 98%;
   }
 }
 

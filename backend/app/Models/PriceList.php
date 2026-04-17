@@ -14,5 +14,9 @@ class PriceList extends Model
         'price',
         'stock',
     ];
-    //
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'price_list_id');
+    }
 }

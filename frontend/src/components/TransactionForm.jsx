@@ -12,7 +12,8 @@ function getNowDate() {
 export default function TransactionForm({ token }) {
   const [type, setType] = useState('penjualan');
   const [date, setDate] = useState(getNowDate());
-  const [product, setProduct] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [priceListId, setPriceListId] = useState('');
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState(0);
   const [note, setNote] = useState('');
@@ -61,7 +62,8 @@ export default function TransactionForm({ token }) {
 
   const handleProductChange = (e) => {
     const value = e.target.value;
-    setProduct(value);
+    setProductSearch(value);
+    setPriceListId('');
     
     if (value.length > 0) {
       const filtered = products.filter(p => 
@@ -71,12 +73,21 @@ export default function TransactionForm({ token }) {
       setFilteredProducts(filtered);
       setShowSuggestions(true);
     } else {
-      setShowSuggestions(false);
+      setFilteredProducts(products);
+      setShowSuggestions(true);
     }
   };
 
+  const handleProductFocus = () => {
+    if (productSearch.length === 0) {
+      setFilteredProducts(products);
+    }
+    setShowSuggestions(true);
+  };
+
   const selectProduct = (p) => {
-    setProduct(p.product_name);
+    setProductSearch(p.product_name);
+    setPriceListId(p.id);
     setPrice(p.price); // Smart default: auto-fill price
     setShowSuggestions(false);
   };
@@ -85,10 +96,15 @@ export default function TransactionForm({ token }) {
     e.preventDefault();
     setError('');
     
+    if (!priceListId) {
+      setError('Silakan pilih produk dari saran pencarian yang tersedia.');
+      return;
+    }
+
     const trx = {
       date,
       type,
-      product,
+      price_list_id: priceListId,
       quantity: Number(qty),
       price: Number(price),
       note
@@ -97,7 +113,8 @@ export default function TransactionForm({ token }) {
     try {
       await createTransaction(trx, token);
       setMsg('Transaksi disimpan');
-      setProduct('');
+      setProductSearch('');
+      setPriceListId('');
       setQty(1);
       setPrice(0);
       setNote('');
@@ -147,8 +164,9 @@ export default function TransactionForm({ token }) {
             <span className="text-red-500 font-bold">*</span>
           </label>
           <input 
-            value={product} 
+            value={productSearch} 
             onChange={handleProductChange} 
+            onFocus={handleProductFocus}
             required 
             placeholder="Cari produk..." 
             autoComplete="off"

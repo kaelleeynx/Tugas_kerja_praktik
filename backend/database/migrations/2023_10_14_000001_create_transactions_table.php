@@ -10,9 +10,9 @@ class CreateTransactionsTable extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->enum('type', ['penjualan', 'pengeluaran']);
-            $table->date('date');
-            $table->string('product');
+            $table->enum('type', ['penjualan', 'pengeluaran'])->index();
+            $table->date('date')->index();
+            $table->foreignId('price_list_id')->nullable()->constrained('price_lists')->onDelete('cascade');
             $table->integer('quantity');
             $table->decimal('price', 12, 2);
             $table->decimal('total', 12, 2);

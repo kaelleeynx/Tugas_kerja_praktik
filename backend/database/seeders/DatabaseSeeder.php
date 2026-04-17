@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Pemilik',
                 'password' => Hash::make('owner123'),
                 'role' => 'owner',
+                'is_approved' => true,
             ]
         );
 
@@ -27,6 +28,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Karyawan',
                 'password' => Hash::make('staff123'),
                 'role' => 'staff',
+                'is_approved' => true,
             ]
         );
 

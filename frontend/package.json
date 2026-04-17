@@ -1,5 +1,5 @@
 {
-  "name": "frozen-food-frontend",
+  "name": "toko-besi-serta-guna",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -65,7 +65,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite",
-    "type-check": "tsc --noEmit"
+    "lint": "echo 'No linter configured yet'"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

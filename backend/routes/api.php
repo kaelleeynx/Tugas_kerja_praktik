@@ -30,12 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/me', [AuthController::class, 'updateProfile']); // Update own profile
     Route::post('/auth/me/password', [AuthController::class, 'changePassword']); // Change password
 
-    // Users Management
+    // Users Management (read — all authenticated users)
     Route::get('/users', [UserController::class, 'index']); // List all users with pagination
     Route::get('/users/search', [UserController::class, 'search']); // Search users
     Route::get('/users/{id}', [UserController::class, 'show']); // Get user by ID
-    Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     // Transactions
     Route::get('/transactions', [TransactionController::class, 'index']); // List with pagination & filtering
@@ -65,6 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Owner Only Routes
     Route::middleware('role:owner')->group(function () {
+        // User Management (write — owner only)
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
         // Approval Management
         Route::get('/approvals', [ApprovalController::class, 'index']); // List pending approvals
         Route::post('/approvals/{id}/approve', [ApprovalController::class, 'approve']);

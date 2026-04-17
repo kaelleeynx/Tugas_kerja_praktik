@@ -58,7 +58,7 @@ export default function Navbar({ user, route, onRouteChange, onLogout }) {
           )}
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">Frozen Food Oppa</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Toko Besi Serta Guna</h1>
         </div>
         <button 
           onClick={toggleTheme}
@@ -249,7 +249,7 @@ export default function Navbar({ user, route, onRouteChange, onLogout }) {
       {/* Top Header Bar (Desktop) */}
       <header className="hidden md:fixed md:top-0 md:left-20 md:right-0 md:h-16 md:bg-gradient-to-r md:from-white md:via-blue-50/30 md:to-cyan-50/30 md:dark:from-gray-800 md:dark:via-gray-800/50 md:dark:to-gray-800/30 md:border-b md:border-gray-200/50 md:dark:border-gray-700/50 md:flex md:items-center md:justify-between md:px-6 md:z-40 md:backdrop-blur-sm md:shadow-sm md:shadow-black/5">
         <div className="md:flex md:items-center md:gap-4">
-          <h1 className="md:text-xl md:font-bold md:bg-gradient-to-r md:from-cyan-600 md:to-blue-600 md:dark:from-cyan-400 md:dark:to-blue-400 md:bg-clip-text md:text-transparent">Frozen Food Oppa</h1>
+          <h1 className="md:text-xl md:font-bold text-gray-900 dark:text-gray-100">Toko Besi Serta Guna</h1>
         </div>
 
         <div className="md:flex md:items-center md:gap-6">

@@ -13,7 +13,7 @@ class Transaction extends Model
         'id',
         'type',
         'date',
-        'product',
+        'price_list_id',
         'quantity',
         'price',
         'total',
@@ -24,5 +24,10 @@ class Transaction extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function priceList()
+    {
+        return $this->belongsTo(PriceList::class, 'price_list_id');
     }
 }
