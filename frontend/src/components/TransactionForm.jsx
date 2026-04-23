@@ -9,7 +9,7 @@ function getNowDate() {
   return d.toISOString().slice(0,10);
 }
 
-export default function TransactionForm({ token }) {
+export default function TransactionForm() {
   const [type, setType] = useState('penjualan');
   const [date, setDate] = useState(getNowDate());
   const [productSearch, setProductSearch] = useState('');
@@ -40,14 +40,14 @@ export default function TransactionForm({ token }) {
     // Fetch products for autocomplete
     const fetchProducts = async () => {
       try {
-        const data = await priceListService.getPriceList(token);
+        const data = await priceListService.getPriceList();
         setProducts(data);
       } catch (err) {
         console.error("Failed to fetch products", err);
       }
     };
     fetchProducts();
-  }, [token]);
+  }, []);
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function TransactionForm({ token }) {
     };
 
     try {
-      await createTransaction(trx, token);
+      await createTransaction(trx);
       setMsg('Transaksi disimpan');
       setProductSearch('');
       setPriceListId('');

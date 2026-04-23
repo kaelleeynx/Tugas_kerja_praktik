@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Notification;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 
 class ApprovalController extends Controller
@@ -16,7 +18,7 @@ class ApprovalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $pendingUsers
+            'data' => UserResource::collection($pendingUsers)
         ]);
     }
 
@@ -24,28 +26,35 @@ class ApprovalController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Validate user is admin and not approved
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Only admin users can be approved'
+                'message' => 'Hanya pengguna admin yang dapat disetujui'
             ], 400);
         }
 
         if ($user->is_approved) {
             return response()->json([
                 'success' => false,
-                'message' => 'User already approved'
+                'message' => 'Pengguna sudah disetujui sebelumnya'
             ], 400);
         }
 
         $user->is_approved = true;
         $user->save();
 
+        // Notify the approved user
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'system',
+            'title' => 'Akun Disetujui',
+            'message' => 'Akun admin Anda telah disetujui. Anda sekarang dapat login.',
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'User approved successfully',
-            'data' => $user
+            'message' => 'Pengguna berhasil disetujui',
+            'data' => new UserResource($user)
         ]);
     }
 
@@ -53,19 +62,20 @@ class ApprovalController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Validate user is admin
         if ($user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Only admin users can be rejected'
+                'message' => 'Hanya pengguna admin yang dapat ditolak'
             ], 400);
         }
 
+        // Revoke tokens before deletion
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'User rejected and removed'
+            'message' => 'Pengguna ditolak dan dihapus'
         ]);
     }
 }

@@ -1,149 +1,133 @@
-# Tugas Metopeen - Frozen Food Management System
+# Toko Besi Serta Guna — Management System
 
-A modern full-stack web application for managing a frozen food business, featuring transaction recording, inventory management, user roles, and real-time analytics.
+Sistem manajemen full-stack untuk Toko Besi Serta Guna. Pencatatan transaksi, manajemen stok, laporan keuangan, dan dashboard analytics.
 
 ## 🚀 Tech Stack
 
 ### Frontend
 
-- **Vite 5.4**: Next-generation frontend tooling with HMR
-- **React.js 18**: UI Library with hooks
-- **Tailwind CSS v4**: Utility-first CSS framework
-- **Framer Motion**: Production-ready animation library
-- **Anime.js v4**: Advanced JavaScript animation engine
-- **Recharts**: Composable charting library for data visualization
-- **Axios**: Promise-based HTTP client
+- **Vite 8**: Build tool + HMR
+- **React 18**: UI library with hooks
+- **React Router 7**: Path-based routing + route guards
+- **Tailwind CSS v4**: Utility-first CSS
+- **Framer Motion + Anime.js v4**: Animations & micro-interactions
+- **Recharts**: Data visualization (BarChart, analytics)
+- **Axios**: HTTP client with interceptors
 
 ### Backend
 
-- **Laravel 10.x**: Modern PHP framework
-- **MySQL 8.0**: Relational database
-- **Laravel Sanctum**: SPA & API authentication
-- **Laravel Eloquent**: Database ORM
+- **Laravel 10**: PHP framework
+- **PostgreSQL**: Relational database (Railway)
+- **Laravel Sanctum**: Token-based SPA authentication
+- **API Resources**: Standardized JSON responses
+- **FormRequest**: Server-side input validation
 
 ## ✨ Features
 
 ### Core Features
 
 - **Role-Based Access Control**:
-
-  - **Owner**: Full access, approve/reject admin, view reports, manage users
+  - **Owner**: Full access — approve/reject admin, view reports, manage users
   - **Admin**: Requires owner approval, manage inventory, view analytics
   - **Staff**: Auto-approved, record transactions, view daily summary
 
-- **Transaction Management**: Record sales (penjualan) and expenses (pengeluaran) with automatic stock sync
+- **Transaction Management**: Pencatatan penjualan dan pengeluaran with automatic stock sync
 
 - **Inventory Management** (Daftar Barang):
-
   - Product catalog with categorization
   - Real-time stock tracking
   - Quick sale/restock actions
   - Low stock warnings
 
 - **Dashboard Analytics**:
-
-  - Visual charts with Recharts (daily/monthly/yearly views)
-  - Real-time statistics (sales, expenses, net profit)
-  - Transaction history with adjustable quantities
-  - Comparison with previous periods
+  - Visual charts (daily/monthly/yearly views)
+  - Real-time statistics (penjualan, pengeluaran, laba bersih)
+  - Transaction history with quantity adjustments
+  - Period comparison
 
 - **User Management**:
-
-  - Profile picture upload (max 2MB)
+  - Profile picture upload (max 2MB, JPEG/PNG/WebP)
   - Password strength indicator
   - Last login tracking
   - User approval workflow
 
 - **Notifications System**:
-  - Real-time approval notifications
-  - Low stock alerts
+  - Approval notifications
+  - System alerts
   - Unread count indicator
 
 ### UI/UX Features
 
-- **Dark Mode**: Smooth theme switching with persistent preference
-- **Responsive Design**: Optimized for desktop, tablet, and mobile
-- **Animations**: Entrance animations and micro-interactions
-- **Loading States**: Skeleton loaders and spinners
-- **Empty States**: Engaging illustrations and messages
+- **Dark Mode**: System preference detection + manual toggle
+- **Responsive Design**: Desktop, tablet, mobile optimized
+- **Animations**: Entrance animations, micro-interactions
+- **Loading States**: Skeleton loaders, spinners, suspense fallbacks
+- **Route Guards**: ProtectedRoute, OwnerRoute, GuestRoute
 
-## 🔧 Setup Instructions
+## 🏗️ Architecture
+
+```
+Frontend (React 18 + Vite 8)
+├── AuthContext     → Centralized auth state (useAuth hook)
+├── apiClient.js    → Axios + auto-token + 401 auto-logout
+├── api.js          → API service functions
+├── BrowserRouter   → React Router v7 with route guards
+└── Components      → Lazy-loaded via React.lazy + Suspense
+
+Backend (Laravel 10)
+├── FormRequests    → Input validation (6 classes)
+├── API Resources   → Response formatting (3 classes)
+├── Controllers     → Route handlers (5 controllers)
+├── Services        → Business logic (TransactionService)
+├── Middleware       → auth:sanctum + role:owner
+└── Database        → PostgreSQL + performance indexes
+```
+
+## 🔧 Setup
 
 ### Prerequisites
 
-- PHP >= 8.2
-- Composer
-- Node.js >= 18.x
-- MySQL 8.0
+- PHP >= 8.2, Composer
+- Node.js >= 18, npm
+- PostgreSQL (or MySQL)
 - Git
 
-### Backend Setup
+### Backend
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Install PHP dependencies
 composer install
-
-# Copy environment file
 copy .env.example .env
-
-# Generate application key
 php artisan key:generate
 
 # Configure database in .env
-# DB_DATABASE=frozen_food_db
-# DB_USERNAME=your_username
-# DB_PASSWORD=your_password
+# DB_CONNECTION=pgsql
+# DB_DATABASE=toko_besi
 
-# Run migrations
 php artisan migrate
-
-# Seed database (optional - creates default owner)
-php artisan db:seed
-
-# Link storage for profile pictures
-php artisan storage:link
-
-# Start development server
-php artisan serve
+php artisan db:seed          # Creates default owner
+php artisan storage:link     # Profile picture uploads
+php artisan serve            # http://localhost:8000
 ```
 
-Default owner credentials:
-
-- Username: `owner`
-- Password: `owner123`
-
-### Frontend Setup
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create environment file
-copy .env.example .env
-
-# Update .env with backend URL
-# VITE_BACKEND_URL=http://localhost:8000
-
-# Start development server
-npm run dev
-```
-
-Frontend will run on `http://localhost:3000` or `http://127.0.0.1:3000`
-
-## 📦 Build for Production
+Default owner: `owner` / `owner123`
 
 ### Frontend
 
 ```bash
 cd frontend
-npm run build
-# Output: dist/ folder
+npm install
+# Set VITE_BACKEND_URL in .env
+npm run dev                  # http://localhost:3000
+```
+
+## 📦 Production Build
+
+### Frontend
+
+```bash
+cd frontend
+npm run build                # Output: dist/
 ```
 
 ### Backend
@@ -153,53 +137,55 @@ cd backend
 composer install --optimize-autoloader --no-dev
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
+php artisan migrate --force  # New performance indexes
+```
+
+## 🔐 Security
+
+- **Authentication**: Sanctum token-based, 7-day expiration
+- **CORS**: Env-driven origins (no wildcards), Railway pattern matching
+- **Validation**: FormRequest classes with Indonesian error messages
+- **Authorization**: Route middleware (`auth:sanctum`, `role:owner`)
+- **Token Revocation**: Tokens cleared on user delete/reject
+- **Rate Limiting**: Auth endpoints (10 req/min)
+- **Input**: SQL injection prevention via Eloquent ORM
+
+## 📊 API Response Format
+
+All endpoints return consistent format:
+
+```json
+{
+  "success": true,
+  "message": "Optional message",
+  "data": { }
+}
 ```
 
 ## 🚀 Deployment
 
-### Backend (Railway)
+| Service | Platform | Config |
+|---------|----------|--------|
+| Backend | Railway | Root: `/backend`, env vars for DB + CORS |
+| Frontend | Vercel | Root: `/frontend`, output: `dist/`, env: `VITE_BACKEND_URL` |
+| Database | Railway PostgreSQL | Auto-provisioned |
 
-- Deploy Laravel backend with MySQL database
-- Set environment variables (`APP_ENV=production`, `APP_DEBUG=false`)
-- Run migrations automatically or via Railway CLI
-- See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed guide.
 
-### Frontend (Vercel)
+## 📝 Documentation
 
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- Environment Variable: `VITE_BACKEND_URL=https://your-backend.railway.app`
-- See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions
-
-## 🔐 Security Features
-
-- Laravel Sanctum token-based authentication
-- CORS configuration for frontend-backend communication
-- Rate limiting on authentication endpoints (10 requests/minute)
-- Password hashing with Bcrypt (12 rounds)
-- CSRF protection
-- SQL injection prevention via Eloquent ORM
-
-## 📊 Performance Optimizations
-
-- N+1 query resolution (20-100x faster on large datasets)
-- Database query optimization with aggregations
-- Lazy loading for React components
-- Asset optimization with Vite
-- Image optimization for profile pictures
-
-## 📝 License
-
-This project is proprietary software for educational purposes.
+- [DEPLOYMENT.md](DEPLOYMENT.md) — Railway + Vercel deployment guide
+- [CHANGELOG.md](CHANGELOG.md) — Version history
+- [documents/ARCHITECTURE.md](documents/ARCHITECTURE.md) — System design
+- [documents/IMPROVEMENT_SUMMARY.md](documents/IMPROVEMENT_SUMMARY.md) — Improvement details
 
 ## 👨‍💻 Author
 
-**Zandi**  
-Tugas Metode Penelitian - Frozen Food Management
+**Zandi** (rzandi / kaelleeynx)  
+Tugas Kerja Praktik — Toko Besi Serta Guna
 
 ---
 
-**Version**: 2.0.0  
-**Last Updated**: December 2024  
-**Framework**: Laravel 10 + Vite + React 18
+**Version**: 3.0.0  
+**Last Updated**: April 2026  
+**Stack**: Laravel 10 + Vite 8 + React 18

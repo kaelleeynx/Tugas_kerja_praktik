@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { updateUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { animate } from 'animejs';
 import { motion } from 'framer-motion';
 
-const Settings = ({ user, onUserUpdate }) => {
+const Settings = () => {
+  const { user, updateUser: authUpdateUser } = useAuth();
   const [name, setName] = useState(user.name);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(user.profile_picture_url || null);
+  const [previewUrl, setPreviewUrl] = useState(user.profile_picture || null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -71,14 +73,14 @@ const Settings = ({ user, onUserUpdate }) => {
       if (password) formData.append('password', password);
       if (profilePicture) formData.append('profile_picture', profilePicture);
 
-      const updatedUser = await updateUser(user.id, formData, user.token);
+      const updatedUser = await updateUser(user.id, formData);
       
-      onUserUpdate({ ...user, ...updatedUser.data });
+      authUpdateUser({ ...user, ...updatedUser.data });
       setMessage('Profil berhasil diperbarui');
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError(err.message || 'Gagal memperbarui profil');
+      setError(err.response?.data?.message || err.message || 'Gagal memperbarui profil');
     } finally {
       setLoading(false);
     }

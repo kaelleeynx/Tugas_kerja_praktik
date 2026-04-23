@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PriceList;
 use App\Models\Transaction;
+use App\Http\Requests\UpdatePriceListRequest;
+use App\Http\Resources\PriceListResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,7 +16,7 @@ class PriceListController extends Controller
     {
         $items = PriceList::all();
 
-        // Optimized & Safe: Aggregate by price_list_id using database group
+        // Aggregate sales/purchases counts efficiently via DB
         $sales = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
             ->where('type', 'penjualan')
             ->groupBy('price_list_id')
@@ -33,43 +35,90 @@ class PriceListController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $items
+            'data' => PriceListResource::collection($items)
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function show($id)
     {
-        $request->validate([
-            'product_name' => 'sometimes|string|max:255',
-            'category' => 'sometimes|string|max:100',
-            'price' => 'sometimes|numeric|min:0',
-            'stock' => 'sometimes|integer|min:0',
-        ]);
+        $item = PriceList::findOrFail($id);
 
+        return response()->json([
+            'success' => true,
+            'data' => new PriceListResource($item)
+        ]);
+    }
+
+    public function update(UpdatePriceListRequest $request, $id)
+    {
         $item = PriceList::findOrFail($id);
         $item->update($request->only(['product_name', 'category', 'price', 'stock']));
 
         return response()->json([
             'success' => true,
             'message' => 'Item berhasil diperbarui',
-            'data' => $item
+            'data' => new PriceListResource($item)
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'product_name' => 'required|string|max:255',
+            'category'     => 'required|string|max:100',
+            'price'        => 'required|numeric|min:0',
+            'stock'        => 'required|integer|min:0',
+        ]);
+
+        $item = PriceList::create([
+            'product_id'   => strtoupper(Str::random(8)),
+            'product_name' => $request->product_name,
+            'category'     => $request->category,
+            'price'        => $request->price,
+            'stock'        => $request->stock,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item berhasil ditambahkan',
+            'data' => new PriceListResource($item)
+        ], 201);
+    }
+
+    public function destroy($id)
+    {
+        $item = PriceList::findOrFail($id);
+
+        // Check if item has transactions
+        if ($item->transactions()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat menghapus item yang memiliki transaksi'
+            ], 400);
+        }
+
+        $item->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item berhasil dihapus'
         ]);
     }
 
     public function sale(Request $request, $id)
     {
         try {
+            $item = null;
             DB::transaction(function () use ($request, $id, &$item) {
                 $item = PriceList::lockForUpdate()->findOrFail($id);
                 $quantity = $request->input('quantity', 1);
 
                 if ($item->stock < $quantity) {
-                    throw new \Exception('Insufficient stock');
+                    throw new \Exception('Stok tidak mencukupi. Stok tersedia: ' . $item->stock);
                 }
 
                 $item->decrement('stock', $quantity);
 
-                // Create transaction
                 $total = $quantity * $item->price;
                 $transactionId = 'T-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
@@ -89,24 +138,27 @@ class PriceListController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Penjualan berhasil disimpan',
-                'data' => $item->refresh()
+                'data' => new PriceListResource($item->refresh())
             ]);
             
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 400);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 
     public function restock(Request $request, $id)
     {
         try {
+            $item = null;
             DB::transaction(function () use ($request, $id, &$item) {
                 $item = PriceList::lockForUpdate()->findOrFail($id);
                 $quantity = $request->input('quantity', 1);
 
                 $item->increment('stock', $quantity);
 
-                // Create transaction
                 $total = $quantity * $item->price;
                 $transactionId = 'T-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
@@ -126,10 +178,13 @@ class PriceListController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Restock berhasil disimpan',
-                'data' => $item->refresh()
+                'data' => new PriceListResource($item->refresh())
             ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 400);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getUsers, deleteUser } from '../services/api';
 import { animate, stagger } from 'animejs';
 
-export default function UserManagement({ token }) {
+export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,7 +41,7 @@ export default function UserManagement({ token }) {
 
   useEffect(() => {
     fetchUsers();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!loading && containerRef.current) {
@@ -57,7 +57,7 @@ export default function UserManagement({ token }) {
 
   const fetchUsers = async () => {
     try {
-      const data = await getUsers(token);
+      const data = await getUsers();
       setUsers(data);
       setLoading(false);
     } catch (error) {
@@ -69,7 +69,7 @@ export default function UserManagement({ token }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      await deleteUser(id, token);
+      await deleteUser(id);
       fetchUsers();
     } catch (error) {
       alert('Failed to delete user');

@@ -1,41 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification as deleteNotifApi } from '../services/api';
 
-const NotificationBell = ({ token }) => {
+const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/api`;
-
   useEffect(() => {
-    if (!token) return;
-    
-    // Fetch notifications on mount
     fetchNotifications();
-    
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, []);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/notifications`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      const result = await response.json();
+      const result = await getNotifications();
       if (result.success) {
         setNotifications(result.data || []);
         setUnreadCount(result.unread_count || 0);
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch {
+      // Silently fail — notification fetch is non-critical
     } finally {
       setLoading(false);
     }
@@ -43,60 +31,36 @@ const NotificationBell = ({ token }) => {
 
   const markAsRead = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      if (response.ok) {
-        setNotifications(notifications.map(n => 
-          n.id === id ? { ...n, read_at: new Date() } : n
-        ));
-        setUnreadCount(Math.max(0, unreadCount - 1));
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      await markNotificationRead(id);
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read_at: new Date() } : n
+      ));
+      setUnreadCount(Math.max(0, unreadCount - 1));
+    } catch {
+      // Silently fail
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      if (response.ok) {
-        setNotifications(notifications.map(n => ({ ...n, read_at: new Date() })));
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      await markAllNotificationsRead();
+      setNotifications(notifications.map(n => ({ ...n, read_at: new Date() })));
+      setUnreadCount(0);
+    } catch {
+      // Silently fail
     }
   };
 
-  const deleteNotification = async (id) => {
+  const handleDeleteNotification = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/notifications/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
-      if (response.ok) {
-        const notification = notifications.find(n => n.id === id);
-        setNotifications(notifications.filter(n => n.id !== id));
-        if (!notification?.read_at) {
-          setUnreadCount(Math.max(0, unreadCount - 1));
-        }
+      await deleteNotifApi(id);
+      const notification = notifications.find(n => n.id === id);
+      setNotifications(notifications.filter(n => n.id !== id));
+      if (!notification?.read_at) {
+        setUnreadCount(Math.max(0, unreadCount - 1));
       }
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
+    } catch {
+      // Silently fail
     }
   };
 
@@ -227,7 +191,7 @@ const NotificationBell = ({ token }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteNotification(notification.id);
+                            handleDeleteNotification(notification.id);
                           }}
                           className="text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 transition-colors flex-shrink-0 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                           title="Hapus"

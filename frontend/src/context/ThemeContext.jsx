@@ -13,7 +13,10 @@ export const useTheme = () => {
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || 'light';
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+      // Detect system preference
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return 'light';
   });
@@ -29,15 +32,11 @@ export const ThemeProvider = ({ children }) => {
     // Save to localStorage
     localStorage.setItem('theme', theme);
     
-    console.log('Theme changed to:', theme, 'Classes:', root.className);
+
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => {
-      const newTheme = prev === 'light' ? 'dark' : 'light';
-      console.log('Toggling theme from', prev, 'to', newTheme);
-      return newTheme;
-    });
+    setTheme((prev) => prev === 'light' ? 'dark' : 'light');
   };
 
   return (

@@ -1,36 +1,25 @@
-import axios from 'axios';
-import config from '../config/api';
+/**
+ * Price List Service — Uses centralized apiClient
+ */
+import apiClient from './apiClient';
 
-console.log('[DEBUG] Config apiUrl:', config.apiUrl);
-// TEMPORARY FIX: Hardcode URL to bypass config issue
-const API_URL = 'https://tugasmetopeen-production.up.railway.app/api/price-list';
-console.log('[DEBUG] PriceList API_URL:', API_URL);
-
-const getPriceList = async (token) => {
-  const response = await axios.get(API_URL, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data.data; // Updated to handle { success, data } format
+const getPriceList = async () => {
+  const response = await apiClient.get('/price-list');
+  return response.data.data;
 };
 
-const updateItem = async (id, data, token) => {
-  const response = await axios.put(`${API_URL}/${id}`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const updateItem = async (id, data) => {
+  const response = await apiClient.put(`/price-list/${id}`, data);
   return response.data;
 };
 
-const saleItem = async (id, quantity, token) => {
-  const response = await axios.post(`${API_URL}/${id}/sale`, { quantity }, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const saleItem = async (id, quantity) => {
+  const response = await apiClient.post(`/price-list/${id}/sale`, { quantity });
   return response.data;
 };
 
-const restockItem = async (id, quantity, token) => {
-  const response = await axios.post(`${API_URL}/${id}/restock`, { quantity }, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const restockItem = async (id, quantity) => {
+  const response = await apiClient.post(`/price-list/${id}/restock`, { quantity });
   return response.data;
 };
 

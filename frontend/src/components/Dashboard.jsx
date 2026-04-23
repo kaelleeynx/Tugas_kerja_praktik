@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getTransactions, deleteTransaction, updateTransaction } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { animate, stagger } from 'animejs';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
@@ -8,7 +9,8 @@ function formatIDR(n) {
   return n.toLocaleString('id-ID', { style:'currency', currency:'IDR' });
 }
 
-export default function Dashboard({ user, token }) {
+export default function Dashboard() {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recapType, setRecapType] = useState('harian'); // harian, bulanan, tahunan
@@ -16,7 +18,7 @@ export default function Dashboard({ user, token }) {
 
   useEffect(() => {
     fetchData();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!loading && dashboardRef.current) {
@@ -32,7 +34,7 @@ export default function Dashboard({ user, token }) {
 
   const fetchData = async () => {
     try {
-      const response = await getTransactions(token);
+      const response = await getTransactions();
       // Response is already an array after API fix
       setTransactions(Array.isArray(response) ? response : (response.data || []));
       setLoading(false);
@@ -45,7 +47,7 @@ export default function Dashboard({ user, token }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Yakin ingin menghapus transaksi ini?')) return;
     try {
-      await deleteTransaction(id, token);
+      await deleteTransaction(id);
       fetchData(); // Refresh data
     } catch (error) {
       alert('Gagal menghapus transaksi: ' + error.message);
@@ -57,7 +59,7 @@ export default function Dashboard({ user, token }) {
     if (newQty < 1) return;
 
     try {
-      await updateTransaction(id, { quantity: newQty }, token);
+      await updateTransaction(id, { quantity: newQty });
       fetchData();
     } catch (error) {
       alert('Gagal update quantity: ' + error.message);

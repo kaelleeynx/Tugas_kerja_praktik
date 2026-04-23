@@ -35,26 +35,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor': [
-            'react',
-            'react-dom',
-            'react-router-dom',
-          ],
-          'ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
-          ],
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) {
+            return 'vendor';
+          }
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'ui';
+          }
         },
       },
     },
@@ -64,3 +53,4 @@ export default defineConfig({
     host: 'localhost',
   },
 })
+

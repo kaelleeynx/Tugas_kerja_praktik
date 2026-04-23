@@ -1,24 +1,14 @@
-import React, { useState, useEffect, Suspense } from 'react';
-import { logout } from './services/api';
+import React, { useEffect, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { logout as apiLogout } from './services/api';
+import { setLogoutCallback } from './services/apiClient';
 
-// AnimateJS is optional - lazy load it
-let animate = () => {}; // fallback no-op
-try {
-  // Try to import dynamically to avoid breaking if unavailable
-  import('animejs').then(module => {
-    animate = module.animate;
-  }).catch(() => {
-    console.warn('AnimateJS not available, animations disabled');
-  });
-} catch (e) {
-  console.warn('AnimateJS import failed:', e.message);
-}
 import LoginForm from './components/LoginForm';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
-import { loadUserFromStorage, saveUserToStorage } from './utils/storage';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 
 // Lazy load heavy components for better performance
@@ -30,116 +20,161 @@ const Settings = React.lazy(() => import('./components/Settings'));
 const ReportView = React.lazy(() => import('./components/ReportView'));
 const UserManagement = React.lazy(() => import('./components/UserManagement'));
 
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [route, setRoute] = useState('dashboard'); // 'dashboard' | 'input' | 'report' | 'login' | 'settings' | 'users'
-  const [refreshKey, setRefreshKey] = useState(0);
+// ─── Route Guards ────────────────────────────────────────────────────────
 
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner message="Memuat..." />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function OwnerRoute({ children }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner message="Memuat..." />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'owner') {
+    return (
+      <div className="not-auth card flex flex-col items-center justify-center py-16 gap-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-gray-500">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Akses Ditolak</h4>
+        <p className="text-gray-500 dark:text-gray-400">Halaman ini hanya dapat diakses oleh Owner.</p>
+      </div>
+    );
+  }
+  return children;
+}
+
+function GuestRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner message="Memuat..." />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+// ─── Main App Content (needs router context) ─────────────────────────────
+
+function AppContent() {
+  const { user, login, logout: authLogout } = useAuth();
+  const navigate = useNavigate();
+
+  // Register auto-logout callback for 401 responses
   useEffect(() => {
-    const saved = loadUserFromStorage();
-    if (saved) {
-      setUser(saved);
-    } else {
-      setRoute('login');
-    }
-  }, []);
-
-  useEffect(() => {
-    // Animate not-auth cards when they appear
-    if (document.querySelector('.not-auth')) {
-      animate('.not-auth', {
-        translateY: [20, 0],
-        opacity: [0, 1],
-        duration: 600,
-        easing: 'easeOutQuad'
-      });
-    }
-  }, [route, user]);
-
-  const handleRouteChange = (newRoute) => {
-    setRoute(newRoute);
-    setRefreshKey(prev => prev + 1);
-  };
+    setLogoutCallback(() => {
+      authLogout();
+      navigate('/login', { replace: true });
+    });
+  }, [authLogout, navigate]);
 
   const handleLogin = (userObj) => {
-    setUser(userObj);
-    saveUserToStorage(userObj);
-    setRoute('dashboard');
-    setRefreshKey(prev => prev + 1);
+    login(userObj);
+    navigate('/dashboard', { replace: true });
   };
 
   const handleLogout = async () => {
-    if (user && user.token) {
-      try {
-        await logout(user.token);
-      } catch (error) {
-        console.error('Logout failed on server', error);
-      }
+    try {
+      await apiLogout();
+    } catch {
+      // Server logout failed, still clear local state
     }
-    setUser(null);
-    setRoute('login');
-    localStorage.removeItem('activeUser');
-  };
-
-  const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
-    saveUserToStorage(updatedUser);
+    authLogout();
+    navigate('/login', { replace: true });
   };
 
   return (
+    <div className="app">
+      {user && <Navbar onLogout={handleLogout} />}
+      <main className="main">
+        <Routes>
+          {/* Guest Route */}
+          <Route path="/login" element={
+            <GuestRoute>
+              <LoginForm onLogin={handleLogin} />
+            </GuestRoute>
+          } />
+
+          {/* Protected Routes — All Users */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+                <Dashboard />
+              </Suspense>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading transaction form..." />}>
+                <TransactionForm />
+              </Suspense>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/pricelist" element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading price list..." />}>
+                <PriceList />
+              </Suspense>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading settings..." />}>
+                <Settings />
+              </Suspense>
+            </ProtectedRoute>
+          } />
+
+          {/* Owner-Only Routes */}
+          <Route path="/reports" element={
+            <OwnerRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading reports..." />}>
+                <ReportView />
+              </Suspense>
+            </OwnerRoute>
+          } />
+
+          <Route path="/users" element={
+            <OwnerRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading user management..." />}>
+                <UserManagement />
+              </Suspense>
+            </OwnerRoute>
+          } />
+
+          <Route path="/approvals" element={
+            <OwnerRoute>
+              <Suspense fallback={<LoadingSpinner message="Loading approvals..." />}>
+                <ApprovalInbox />
+              </Suspense>
+            </OwnerRoute>
+          } />
+
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+// ─── Root App ────────────────────────────────────────────────────────────
+
+export default function App() {
+  return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <div className="app">
-          <Navbar user={user} route={route} onRouteChange={handleRouteChange} onLogout={handleLogout} />
-          <main className="main">
-            {!user && route === 'login' && <LoginForm onLogin={handleLogin} />}
-            
-            <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
-              {user && route === 'dashboard' && <Dashboard user={user} token={user.token} key={`dashboard-${refreshKey}`} />}
-            </Suspense>
-
-            <Suspense fallback={<LoadingSpinner message="Loading transaction form..." />}>
-              {user && route === 'input' && <TransactionForm token={user.token} />}
-            </Suspense>
-
-            <Suspense fallback={<LoadingSpinner message="Loading settings..." />}>
-              {user && route === 'settings' && <Settings user={user} onUserUpdate={handleUserUpdate} />}
-            </Suspense>
-
-            <Suspense fallback={<LoadingSpinner message="Loading price list..." />}>
-              {user && route === 'pricelist' && <PriceList token={user.token} />}
-            </Suspense>
-            
-            <Suspense fallback={<LoadingSpinner message="Loading reports..." />}>
-              {user && user.role === 'owner' && route === 'report' && <ReportView token={user.token} key={`report-${refreshKey}`} />}
-            </Suspense>
-
-            <Suspense fallback={<LoadingSpinner message="Loading approvals..." />}>
-              {user && user.role === 'owner' && route === 'approvals' && <ApprovalInbox token={user.token} />}
-            </Suspense>
-
-            <Suspense fallback={<LoadingSpinner message="Loading user management..." />}>
-              {user && user.role === 'owner' && route === 'users' && <UserManagement token={user.token} />}
-            </Suspense>
-            
-            {user && user.role !== 'owner' && (route === 'report' || route === 'approvals' || route === 'users') && (
-              <div className="not-auth card" style={{ opacity: 0 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                <h4>Akses Ditolak</h4>
-                <p>Halaman ini hanya dapat diakses oleh Owner.</p>
-              </div>
-            )}
-            
-            {!user && route !== 'login' && (
-              <div className="not-auth card" style={{ opacity: 0 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 21h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v5"></path><line x1="7" y1="16" x2="21" y2="16"></line><line x1="16" y1="11" x2="16" y2="21"></line></svg>
-                <h4>Anda Belum Login</h4>
-                <p>Silakan login terlebih dahulu untuk mengakses sistem.</p>
-              </div>
-            )}
-          </main>
-        </div>
-      </ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

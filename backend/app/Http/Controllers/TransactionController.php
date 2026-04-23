@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Models\PriceList;
+use App\Http\Requests\StoreTransactionRequest;
+use App\Http\Requests\UpdateTransactionRequest;
+use App\Http\Resources\TransactionResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,29 +22,14 @@ class TransactionController extends Controller
             ->orderBy('date', 'desc')
             ->get();
 
-        // Mappings for old frontend compatibility (optional, better to change frontend)
-        $transactions->transform(function ($transaction) {
-            $transaction->product = $transaction->priceList ? $transaction->priceList->product_name : 'Item Dihapus';
-            return $transaction;
-        });
-
         return response()->json([
             'success' => true,
-            'data' => $transactions
+            'data' => TransactionResource::collection($transactions)
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreTransactionRequest $request)
     {
-        $request->validate([
-            'type' => 'required|in:penjualan,pengeluaran',
-            'date' => 'required|date',
-            'price_list_id' => 'required|exists:price_lists,id',
-            'quantity' => 'required|integer|min:1',
-            'price' => 'required|numeric|min:0',
-            'note' => 'nullable|string|max:500'
-        ]);
-
         try {
             $transaction = DB::transaction(function () use ($request) {
                 // Lock the row for update to prevent race conditions
@@ -57,7 +45,7 @@ class TransactionController extends Controller
                     $item->increment('stock', $request->quantity);
                 }
 
-                // Generate unique transaction ID safely
+                // Generate unique transaction ID
                 $transactionId = 'T-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
                 return Transaction::create([
@@ -76,7 +64,7 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil disimpan',
-                'data' => $transaction
+                'data' => new TransactionResource($transaction->load('priceList'))
             ], 201);
             
         } catch (\Exception $e) {
@@ -85,6 +73,16 @@ class TransactionController extends Controller
                 'message' => $e->getMessage()
             ], 400);
         }
+    }
+
+    public function show($id)
+    {
+        $transaction = Transaction::with(['user', 'priceList'])->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => new TransactionResource($transaction)
+        ]);
     }
 
     public function destroy($id)
@@ -119,12 +117,8 @@ class TransactionController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateTransactionRequest $request, $id)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1',
-        ]);
-
         try {
             $transaction = DB::transaction(function () use ($request, $id) {
                 $transaction = Transaction::findOrFail($id);
@@ -155,7 +149,7 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil diperbarui',
-                'data' => $transaction
+                'data' => new TransactionResource($transaction->load('priceList'))
             ]);
             
         } catch (\Exception $e) {
@@ -164,5 +158,84 @@ class TransactionController extends Controller
                 'message' => $e->getMessage()
             ], 400);
         }
+    }
+
+    public function getStatistics(Request $request)
+    {
+        $service = new \App\Services\TransactionService();
+        $stats = $service->getStatistics($request->from, $request->to);
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
+    }
+
+    public function getDailyStatistics(Request $request)
+    {
+        $service = new \App\Services\TransactionService();
+        $stats = $service->getDailyStatistics($request->date);
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats
+        ]);
+    }
+
+    public function dashboardSummary()
+    {
+        $service = new \App\Services\TransactionService();
+
+        // Current month stats
+        $currentMonth = $service->getStatistics(
+            now()->startOfMonth()->toDateString(),
+            now()->endOfMonth()->toDateString()
+        );
+
+        // Previous month stats for comparison
+        $prevMonth = $service->getStatistics(
+            now()->subMonth()->startOfMonth()->toDateString(),
+            now()->subMonth()->endOfMonth()->toDateString()
+        );
+
+        // Today's stats
+        $today = $service->getDailyStatistics(now());
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'current_month' => $currentMonth,
+                'previous_month' => $prevMonth,
+                'today' => $today,
+                'total_products' => \App\Models\PriceList::count(),
+                'total_users' => \App\Models\User::where('role', '!=', 'owner')->count(),
+            ]
+        ]);
+    }
+
+    public function monthlyReport(Request $request)
+    {
+        $service = new \App\Services\TransactionService();
+        $report = $service->getMonthlyReport($request->month, $request->year);
+
+        return response()->json([
+            'success' => true,
+            'data' => $report
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $transactions = Transaction::with(['user', 'priceList'])
+            ->when($request->from && $request->to, function ($query) use ($request) {
+                return $query->whereBetween('date', [$request->from, $request->to]);
+            })
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => TransactionResource::collection($transactions)
+        ]);
     }
 }

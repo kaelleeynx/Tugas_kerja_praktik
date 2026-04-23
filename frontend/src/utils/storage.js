@@ -4,22 +4,16 @@ export function saveUserToStorage(user) {
 
 export function loadUserFromStorage() {
   const userJson = localStorage.getItem('activeUser');
-  return userJson ? JSON.parse(userJson) : null;
-}
-
-export function getUsers() {
-  const usersJson = localStorage.getItem('users');
-  if (!usersJson) {
-    const defaultUsers = [
-      { username: 'owner', name: 'Pemilik', role: 'owner', password: 'owner123' },
-      { username: 'staff', name: 'Karyawan', role: 'staff', password: 'staff123' }
-    ];
-    localStorage.setItem('users', JSON.stringify(defaultUsers));
-    return defaultUsers;
+  if (!userJson) return null;
+  try {
+    return JSON.parse(userJson);
+  } catch {
+    localStorage.removeItem('activeUser');
+    return null;
   }
-  return JSON.parse(usersJson);
 }
 
-export function saveUsers(users) {
-  localStorage.setItem('users', JSON.stringify(users));
+export function clearUserStorage() {
+  localStorage.removeItem('activeUser');
+  localStorage.removeItem('token');
 }

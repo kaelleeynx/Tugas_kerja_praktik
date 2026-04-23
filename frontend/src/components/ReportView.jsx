@@ -6,7 +6,7 @@ function formatIDR(n) {
   return n.toLocaleString('id-ID', { style:'currency', currency:'IDR' });
 }
 
-export default function ReportView({ token }) {
+export default function ReportView() {
   const [transactions, setTransactions] = useState([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -18,28 +18,16 @@ export default function ReportView({ token }) {
   useEffect(()=> {
     const fetchData = async () => {
       try {
-        console.log('Fetching transactions with token:', token ? 'present' : 'missing');
-        const response = await getTransactions(token);
-        console.log('Raw response:', response);
-        console.log('Response type:', typeof response);
-        console.log('Is array:', Array.isArray(response));
-        
-        // Response is already an array after API fix
+        const response = await getTransactions();
         const data = Array.isArray(response) ? response : (response.data || []);
-        console.log('Processed data:', data);
-        console.log('Data length:', data.length);
-        console.log('Sample transaction:', data[0]);
-        
         setTransactions(data);
         setLoading(false);
       } catch (error) {
-        console.error('Failed to fetch transactions:', error);
-        console.error('Error message:', error.message);
         setLoading(false);
       }
     };
     fetchData();
-  }, [token]);
+  }, []);
 
   const setDatePreset = (days) => {
     const end = new Date();
@@ -50,11 +38,6 @@ export default function ReportView({ token }) {
   };
 
   const generate = () => {
-    console.log('=== Generating Report ===');
-    console.log('Total transactions:', transactions.length);
-    console.log('Date from:', from, 'Date to:', to);
-    console.log('All transactions:', transactions);
-    
     if (transactions.length === 0) {
       alert('Belum ada data transaksi. Silakan buat transaksi terlebih dahulu.');
       return;
@@ -63,16 +46,10 @@ export default function ReportView({ token }) {
     const f = from || '1970-01-01';
     const t = to || '9999-12-31';
     
-    console.log('Filter range:', f, '-', t);
-    
     const filtered = transactions.filter(trx => {
       const trxDate = trx.date || trx.created_at;
-      console.log('Transaction date:', trxDate, 'Type:', trx.type, 'Match:', trxDate >= f && trxDate <= t);
       return trxDate >= f && trxDate <= t;
     });
-    
-    console.log('Filtered count:', filtered.length);
-    console.log('Filtered transactions:', filtered);
     
     if (filtered.length === 0) {
       alert('Tidak ada transaksi dalam rentang tanggal yang dipilih.');
@@ -82,13 +59,11 @@ export default function ReportView({ token }) {
     
     const totals = filtered.reduce((acc, t) => {
       const amount = Number(t.total);
-      console.log(`Processing: ${t.type} = ${amount}`);
       if (t.type === 'penjualan') acc.sales += amount; 
       else acc.expense += amount;
       return acc;
     }, { sales: 0, expense: 0 });
     
-    console.log('Totals:', totals);
     setReport({ filtered, totals });
   };
 

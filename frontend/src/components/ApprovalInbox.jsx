@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getPendingApprovals, approveUser, rejectUser } from '../services/api';
 import { animate, stagger } from 'animejs';
 
-export default function ApprovalInbox({ token }) {
+export default function ApprovalInbox() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef(null);
 
   useEffect(() => {
     fetchApprovals();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!loading && containerRef.current) {
@@ -25,7 +25,7 @@ export default function ApprovalInbox({ token }) {
 
   const fetchApprovals = async () => {
     try {
-      const response = await getPendingApprovals(token);
+      const response = await getPendingApprovals();
       // Handle new standardized response format
       const data = response.data || response;
       setApprovals(Array.isArray(data) ? data : []);
@@ -38,7 +38,7 @@ export default function ApprovalInbox({ token }) {
 
   const handleApprove = async (id) => {
     try {
-      await approveUser(id, token);
+      await approveUser(id);
       fetchApprovals();
     } catch (error) {
       alert('Failed to approve user');
@@ -48,7 +48,7 @@ export default function ApprovalInbox({ token }) {
   const handleReject = async (id) => {
     if (!window.confirm('Reject this user?')) return;
     try {
-      await rejectUser(id, token);
+      await rejectUser(id);
       fetchApprovals();
     } catch (error) {
       alert('Failed to reject user');

@@ -4,7 +4,7 @@ import PriceListOverview from './PriceListOverview';
 import PriceListTable from './PriceListTable';
 import useDebounce from '../hooks/useDebounce';
 
-const PriceList = ({ token }) => {
+const PriceList = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +21,7 @@ const PriceList = ({ token }) => {
 
   const fetchItems = async () => {
     try {
-      const data = await priceListService.getPriceList(token);
+      const data = await priceListService.getPriceList();
       setItems(data);
       setLoading(false);
     } catch (err) {
@@ -32,7 +32,7 @@ const PriceList = ({ token }) => {
 
   const handleSale = async (id) => {
     try {
-      await priceListService.saleItem(id, 1, token);
+      await priceListService.saleItem(id, 1);
       fetchItems();
     } catch (err) {
       alert('Sale failed: ' + (err.response?.data?.message || err.message));
@@ -41,7 +41,7 @@ const PriceList = ({ token }) => {
 
   const handleRestock = async (id) => {
     try {
-      await priceListService.restockItem(id, 1, token);
+      await priceListService.restockItem(id, 1);
       fetchItems();
     } catch (err) {
       alert('Restock failed');
@@ -55,7 +55,7 @@ const PriceList = ({ token }) => {
 
   const saveEdit = async (id) => {
     try {
-      await priceListService.updateItem(id, { stock: editStock }, token);
+      await priceListService.updateItem(id, { stock: editStock });
       setEditId(null);
       fetchItems();
     } catch (err) {

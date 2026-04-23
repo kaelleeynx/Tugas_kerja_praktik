@@ -1,59 +1,105 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Backend — Toko Besi Serta Guna API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 10 REST API for the Toko Besi Serta Guna management system.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Laravel 10** + PHP 8.2
+- **Laravel Sanctum** — Token authentication (7-day expiry)
+- **PostgreSQL** — Database (Railway)
+- **FormRequest** — Input validation
+- **API Resources** — Response formatting
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+php artisan storage:link
+php artisan serve
+```
 
-## Learning Laravel
+## API Endpoints
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Auth
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/login` | ❌ | Login |
+| POST | `/api/auth/register` | ❌ | Register |
+| POST | `/api/auth/logout` | ✅ | Logout |
+| GET | `/api/auth/me` | ✅ | Get current user |
+| PUT | `/api/auth/me` | ✅ | Update profile |
+| POST | `/api/auth/me/password` | ✅ | Change password |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Transactions
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/transactions` | ✅ | List all |
+| POST | `/api/transactions` | ✅ | Create |
+| GET | `/api/transactions/{id}` | ✅ | Get single |
+| PUT | `/api/transactions/{id}` | ✅ | Update qty |
+| DELETE | `/api/transactions/{id}` | ✅ | Delete |
+| GET | `/api/transactions/statistics` | ✅ | Statistics |
+| GET | `/api/transactions/daily` | ✅ | Daily stats |
+| GET | `/api/transactions/dashboard-summary` | ✅ | Dashboard |
+| GET | `/api/transactions/monthly-report` | ✅ | Monthly report |
+| GET | `/api/transactions/export` | ✅ | Export data |
 
-## Laravel Sponsors
+### Price List
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/price-list` | ✅ | List all |
+| POST | `/api/price-list` | ✅ | Create |
+| GET | `/api/price-list/{id}` | ✅ | Get single |
+| PUT | `/api/price-list/{id}` | ✅ | Update |
+| DELETE | `/api/price-list/{id}` | ✅ | Delete |
+| POST | `/api/price-list/{id}/sale` | ✅ | Quick sale |
+| POST | `/api/price-list/{id}/restock` | ✅ | Quick restock |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Users (Owner only)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/users` | 🔒 | List users |
+| PUT | `/api/users/{id}` | 🔒 | Update user |
+| DELETE | `/api/users/{id}` | 🔒 | Delete user |
 
-### Premium Partners
+### Approvals (Owner only)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/approvals` | 🔒 | Pending list |
+| POST | `/api/approvals/{id}/approve` | 🔒 | Approve |
+| POST | `/api/approvals/{id}/reject` | 🔒 | Reject |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+> ✅ = `auth:sanctum` | 🔒 = `auth:sanctum` + `role:owner`
 
-## Contributing
+## Response Format
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```json
+{
+  "success": true,
+  "message": "Optional",
+  "data": {}
+}
+```
 
-## Code of Conduct
+## Environment Variables
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated frontend URLs |
+| `SANCTUM_TOKEN_EXPIRATION` | `10080` | Token expiry in minutes (7 days) |
 
-## Security Vulnerabilities
+## Architecture
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+Controllers → FormRequests → Services → Models → Database
+     ↓
+API Resources → JSON Response
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Version**: 3.0.0 | **Last Updated**: April 2026

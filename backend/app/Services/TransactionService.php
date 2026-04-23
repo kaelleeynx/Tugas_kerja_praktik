@@ -7,78 +7,75 @@ use Carbon\Carbon;
 
 /**
  * Transaction Service
- * Handles business logic for transactions
+ * Handles business logic for transaction statistics and reporting.
+ * 
+ * NOTE: Column mapping
+ * - Transaction type values: 'penjualan' (sale), 'pengeluaran' (expense)
+ * - Amount column: 'total' (not 'amount')
+ * - Date column: 'date' (not 'created_at')
  */
-class TransactionService extends BaseService
+class TransactionService
 {
-    protected function getModel()
-    {
-        return new Transaction();
-    }
-
     /**
-     * Get transaction statistics
+     * Get transaction statistics for a given date range.
      */
     public function getStatistics($startDate = null, $endDate = null)
     {
-        $query = $this->model;
+        $query = Transaction::query();
 
         if ($startDate) {
-            $query = $query->where('created_at', '>=', $startDate);
+            $query->where('date', '>=', $startDate);
         }
 
         if ($endDate) {
-            $query = $query->where('created_at', '<=', $endDate);
+            $query->where('date', '<=', $endDate);
         }
 
-        $totalSales = $query->where('type', 'sale')->sum('amount');
-        $totalExpenses = $query->where('type', 'expense')->sum('amount');
-        $totalRestocks = $query->where('type', 'restock')->count();
+        $totalSales = (clone $query)->where('type', 'penjualan')->sum('total');
+        $totalExpenses = (clone $query)->where('type', 'pengeluaran')->sum('total');
+        $transactionCount = (clone $query)->count();
 
         return [
             'total_sales' => $totalSales,
             'total_expenses' => $totalExpenses,
             'net_profit' => $totalSales - $totalExpenses,
-            'total_restocks' => $totalRestocks,
-            'count' => $query->count(),
+            'transaction_count' => $transactionCount,
         ];
     }
 
     /**
-     * Get daily statistics
+     * Get daily statistics grouped by transaction type.
      */
     public function getDailyStatistics($date = null)
     {
         $date = $date ? Carbon::parse($date) : Carbon::today();
 
-        return $this->model
-            ->whereDate('created_at', $date)
-            ->selectRaw('type, COUNT(*) as count, SUM(amount) as total')
+        return Transaction::whereDate('date', $date)
+            ->selectRaw('type, COUNT(*) as count, SUM(total) as total_amount')
             ->groupBy('type')
             ->get()
             ->map(function ($item) {
                 return [
                     'type' => $item->type,
                     'count' => $item->count,
-                    'total' => $item->total,
+                    'total' => $item->total_amount,
                 ];
             });
     }
 
     /**
-     * Get monthly report
+     * Get monthly report grouped by date and type.
      */
     public function getMonthlyReport($month = null, $year = null)
     {
         $month = $month ?? Carbon::now()->month;
         $year = $year ?? Carbon::now()->year;
 
-        return $this->model
-            ->whereMonth('created_at', $month)
-            ->whereYear('created_at', $year)
-            ->selectRaw('DATE(created_at) as date, type, SUM(amount) as total, COUNT(*) as count')
-            ->groupByRaw('DATE(created_at), type')
-            ->orderBy('date')
+        return Transaction::whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->selectRaw('DATE(date) as report_date, type, SUM(total) as total_amount, COUNT(*) as count')
+            ->groupByRaw('DATE(date), type')
+            ->orderBy('report_date')
             ->get();
     }
 }

@@ -1,72 +1,84 @@
 # Architecture Overview
 
-## Frozen Food Management System - System Design
+## Toko Besi Serta Guna — System Design v3.0
 
 ### High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       Frontend (React 19)                       │
-│  ┌───────────────┐  ┌────────────┐  ┌──────────────────────┐   │
-│  │  Components   │  │   Hooks    │  │  Context & State     │   │
-│  │  (Lazy Load)  │  │  (Custom)  │  │  Management          │   │
-│  └───────────────┘  └────────────┘  └──────────────────────┘   │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Error Boundary  │  Loading Spinner  │  Route Protection  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Services (API calls via Axios)                            │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │ HTTP/HTTPS (REST API)
-                      │ Base: REACT_APP_BACKEND_URL
-                      │
-┌─────────────────────▼───────────────────────────────────────────┐
-│                   Backend (Laravel 12)                          │
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  API Routes (api.php)                                    │   │
-│  │  - Auth endpoints (login, logout, me)                    │   │
-│  │  - User management                                        │   │
-│  │  - Transactions (CRUD + statistics)                      │   │
-│  │  - Price list                                            │   │
-│  │  - Approvals (Owner only)                                │   │
-│  │  - Dashboard (Owner only)                                │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                          │                                        │
-│  ┌──────────────────────▼──────────────────────────────────┐    │
-│  │  Controllers                                             │    │
-│  │  - AuthController     - UserController                   │    │
-│  │  - TransactionController - PriceListController          │    │
-│  │  - ApprovalController                                    │    │
-│  └──────────────────────┬──────────────────────────────────┘    │
-│                         │                                        │
-│  ┌──────────────────────▼──────────────────────────────────┐    │
-│  │  Services (Business Logic)                              │    │
-│  │  - BaseService (CRUD base)                              │    │
-│  │  - TransactionService (stats, reports)                  │    │
-│  │  - AuthService (if needed)                              │    │
-│  └──────────────────────┬──────────────────────────────────┘    │
-│                         │                                        │
-│  ┌──────────────────────▼──────────────────────────────────┐    │
-│  │  Models (Eloquent ORM)                                   │    │
-│  │  - User           - Transaction                          │    │
-│  │  - PriceList      - (Others as needed)                   │    │
-│  └──────────────────────┬──────────────────────────────────┘    │
-│                         │                                        │
-└─────────────────────────▼───────────────────────────────────────┘
-                          │
-                 ┌────────┴────────┐
-                 │                  │
-        ┌────────▼──────┐   ┌──────▼──────┐
-        │   MySQL DB    │   │   File      │
-        │   - users     │   │   Storage   │
-        │   - trans.    │   │   - images  │
-        │   - price_    │   │   - exports │
-        │   - etc.      │   │             │
-        └───────────────┘   └─────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Frontend (React 18 + Vite 8)                     │
+│                                                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
+│  │  AuthContext  │  │  ThemeContext │  │  BrowserRouter (v7)      │  │
+│  │  (useAuth)   │  │  (dark mode) │  │  ProtectedRoute          │  │
+│  │              │  │              │  │  OwnerRoute / GuestRoute  │  │
+│  └──────────────┘  └──────────────┘  └──────────────────────────┘  │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Components (Lazy Loaded via React.lazy + Suspense)          │   │
+│  │  Dashboard │ TransactionForm │ PriceList │ Settings          │   │
+│  │  ReportView │ UserManagement │ ApprovalInbox │ Navbar        │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Services                                                    │   │
+│  │  apiClient.js → Axios + interceptors (token, 401 logout)    │   │
+│  │  api.js → Auth, Users, Transactions, Approvals, Notif       │   │
+│  │  priceListService.js → PriceList CRUD + sale/restock        │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │ HTTPS (REST API)
+                           │ Base: VITE_BACKEND_URL/api
+                           │
+┌──────────────────────────▼──────────────────────────────────────────┐
+│                    Backend (Laravel 10)                              │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Middleware Pipeline                                         │   │
+│  │  CORS → auth:sanctum → role:owner → Controller              │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  FormRequests (Validation Layer)                              │   │
+│  │  LoginRequest │ RegisterRequest │ StoreTransactionRequest    │   │
+│  │  UpdateTransactionRequest │ UpdatePriceListRequest           │   │
+│  │  UpdateProfileRequest                                        │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Controllers                                                 │   │
+│  │  AuthController │ TransactionController │ PriceListController│   │
+│  │  UserController │ ApprovalController │ NotificationController│   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  API Resources (Response Layer)                              │   │
+│  │  UserResource │ TransactionResource │ PriceListResource      │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Services (Business Logic)                                   │   │
+│  │  TransactionService → statistics, daily, monthly reports     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Models (Eloquent ORM)                                       │   │
+│  │  User │ Transaction │ PriceList │ Notification               │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+                  ┌────────┴────────┐
+                  │                 │
+         ┌───────▼───────┐  ┌──────▼──────┐
+         │  PostgreSQL   │  │   Storage   │
+         │  (Railway)    │  │   (public)  │
+         │               │  │             │
+         │  - users      │  │  - profiles │
+         │  - transactions│  │    (images) │
+         │  - price_lists │  │             │
+         │  - notifications│ │             │
+         └───────────────┘  └─────────────┘
 ```
 
 ---
@@ -78,42 +90,35 @@
 ```
 frontend/
 ├── public/
-│   └── index.html           # Entry point
+│   └── index.html              # Entry point (lang="id")
 ├── src/
 │   ├── components/
-│   │   ├── ErrorBoundary.jsx      # Error handling
-│   │   ├── LoadingSpinner.jsx     # Loading UI
-│   │   ├── Dashboard.jsx          # Main dashboard
-│   │   ├── TransactionForm.jsx    # Transaction input
-│   │   ├── ReportView.jsx         # Reports
-│   │   ├── PriceList.jsx          # Product management
-│   │   ├── ApprovalInbox.jsx      # Pending approvals
-│   │   ├── UserManagement.jsx     # User management (Owner)
-│   │   ├── Settings.jsx           # User settings
-│   │   ├── Navbar.jsx             # Navigation
-│   │   └── LoginForm.jsx          # Authentication
+│   │   ├── ErrorBoundary.jsx   # React error boundary
+│   │   ├── LoadingSpinner.jsx  # Suspense fallback
+│   │   ├── Navbar.jsx          # NavLink-based navigation
+│   │   ├── LoginForm.jsx       # Auth form (login + register)
+│   │   ├── Dashboard.jsx       # Analytics + charts
+│   │   ├── TransactionForm.jsx # Transaction creation
+│   │   ├── PriceList.jsx       # Product management
+│   │   ├── ReportView.jsx      # Reports (Owner only)
+│   │   ├── UserManagement.jsx  # User CRUD (Owner only)
+│   │   ├── ApprovalInbox.jsx   # Admin approval (Owner only)
+│   │   ├── Settings.jsx        # Profile + password
+│   │   └── NotificationBell.jsx# Notification dropdown
 │   ├── services/
-│   │   └── api.js                 # Axios configuration & API calls
+│   │   ├── apiClient.js        # Axios + interceptors
+│   │   ├── api.js              # API service functions
+│   │   └── priceListService.js # PriceList service
 │   ├── context/
-│   │   └── ThemeContext.jsx       # Theme/dark mode
-│   ├── hooks/
-│   │   └── (custom hooks)
+│   │   ├── AuthContext.jsx     # Auth state (useAuth hook)
+│   │   └── ThemeContext.jsx    # Dark mode state
 │   ├── utils/
-│   │   ├── storage.js             # LocalStorage utilities
-│   │   └── formatters.js          # Format helpers
-│   ├── App.jsx                    # Main component with routing
-│   ├── App.css                    # Global styles
-│   ├── index.js                   # React DOM render
-│   ├── index.css                  # Global CSS
-│   ├── config.js                  # Environment-based config
-│   └── setupTests.js              # Test configuration
-├── package.json                   # Dependencies
-├── .env                           # Environment variables (dev)
-├── .env.example                   # Template for .env
-├── craco.config.js                # CRA override config
-├── tailwind.config.js             # Tailwind CSS config
-├── jsconfig.json                  # JS path aliases
-└── README.md
+│   │   └── storage.js          # localStorage helpers
+│   ├── App.jsx                 # Router + route guards
+│   ├── App.css                 # Global styles
+│   └── main.jsx                # React DOM render
+├── vite.config.js              # Vite 8 + proxy + chunks
+└── package.json
 ```
 
 ### Backend (`/backend`)
@@ -123,106 +128,43 @@ backend/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── AuthController.php
-│   │   │   ├── UserController.php
-│   │   │   ├── TransactionController.php
-│   │   │   ├── PriceListController.php
-│   │   │   └── ApprovalController.php
+│   │   │   ├── AuthController.php       # Login, register, profile
+│   │   │   ├── TransactionController.php # CRUD + stats + export
+│   │   │   ├── PriceListController.php  # CRUD + sale + restock
+│   │   │   ├── UserController.php       # User management
+│   │   │   ├── ApprovalController.php   # Admin approval flow
+│   │   │   └── NotificationController.php# Notification CRUD
+│   │   ├── Requests/
+│   │   │   ├── LoginRequest.php
+│   │   │   ├── RegisterRequest.php
+│   │   │   ├── StoreTransactionRequest.php
+│   │   │   ├── UpdateTransactionRequest.php
+│   │   │   ├── UpdatePriceListRequest.php
+│   │   │   └── UpdateProfileRequest.php
+│   │   ├── Resources/
+│   │   │   ├── UserResource.php
+│   │   │   ├── TransactionResource.php
+│   │   │   └── PriceListResource.php
 │   │   └── Middleware/
-│   │       └── RateLimitMiddleware.php
+│   │       └── CheckRole.php            # role:owner guard
 │   ├── Models/
 │   │   ├── User.php
 │   │   ├── Transaction.php
-│   │   └── PriceList.php
-│   ├── Services/
-│   │   ├── BaseService.php        # Base CRUD service
-│   │   └── TransactionService.php # Business logic
-│   └── Notifications/
-│       └── NewAdminRegistration.php
-├── bootstrap/
-│   └── app.php                    # App bootstrapping
+│   │   ├── PriceList.php
+│   │   └── Notification.php
+│   └── Services/
+│       └── TransactionService.php       # Statistics & reports
 ├── config/
-│   ├── app.php                    # App configuration
-│   ├── auth.php                   # Authentication
-│   ├── cors.php                   # CORS settings
-│   ├── database.php               # Database config
-│   ├── l5-swagger.php             # Swagger/OpenAPI config
-│   └── (other configs)
+│   ├── cors.php                # Env-driven CORS origins
+│   └── sanctum.php             # 7-day token expiration
 ├── database/
-│   ├── migrations/                # Database schema
-│   ├── seeders/                   # Sample data
-│   │   ├── DatabaseSeeder.php
-│   │   ├── OwnerSeeder.php
-│   │   └── PriceListSeeder.php
-│   └── factories/                 # Factories for testing
+│   └── migrations/
+│       └── 2026_04_23_*_add_performance_indexes.php
 ├── routes/
-│   ├── api.php                    # API routes (v1)
-│   └── web.php                    # Web routes (if needed)
-├── storage/
-│   ├── app/                       # File storage
-│   ├── logs/                      # Application logs
-│   └── framework/                 # Framework temp files
-├── tests/
-│   ├── Feature/                   # Feature tests
-│   └── Unit/                      # Unit tests
-├── composer.json                  # PHP dependencies
-├── .env                           # Environment variables
-├── .env.example                   # Template for .env
-├── phpunit.xml                    # PHPUnit config
-└── README.md
+│   └── api.php                 # All API routes
+├── .env.example                # Template with CORS + Sanctum vars
+└── composer.json
 ```
-
-### Shared (`/shared`)
-
-```
-shared/
-└── constants.js                   # Shared constants
-    - USER_ROLES (owner, staff)
-    - TRANSACTION_TYPES (sale, expense, restock)
-    - API_STATUS (HTTP status codes)
-    - CACHE_KEYS
-    - PAGINATION defaults
-    - VALIDATION_RULES
-    - FEATURES flags
-```
-
-### Documentation (`/documents`)
-
-```
-documents/
-├── README.md                      # Project overview
-├── DEPLOYMENT.md                  # Railway/Vercel guide
-├── CHANGELOG.md                   # Version history
-├── API_DOCUMENTATION.md           # API reference
-├── ARCHITECTURE.md                # System design (this file)
-├── SETUP_GUIDE.md                 # Local development setup
-├── DEVELOPMENT_WORKFLOW.md        # Git workflow & conventions
-└── TROUBLESHOOTING.md             # Common issues & solutions
-```
-
----
-
-## Key Technologies
-
-### Frontend Stack
-- **React 19**: UI library with latest features
-- **React Router 7**: Client-side routing
-- **Tailwind CSS 4**: Utility-first CSS
-- **Radix UI**: Headless UI components
-- **Recharts**: Data visualization
-- **Anime.js 4**: Animations
-- **Axios**: HTTP client
-- **React Hook Form**: Form management
-- **Zod**: Schema validation
-- **Framer Motion**: Advanced animations
-- **Lucide React**: Icon library
-
-### Backend Stack
-- **Laravel 12**: PHP web framework
-- **MySQL 8**: Relational database
-- **Sanctum**: API authentication
-- **Eloquent ORM**: Database abstraction
-- **Vite**: Asset bundler
 
 ---
 
@@ -232,245 +174,110 @@ documents/
 1. User inputs credentials → LoginForm
          │
          ▼
-2. API call: POST /api/auth/login
+2. API: POST /api/auth/login (LoginRequest validates)
          │
          ▼
-3. Backend validates credentials
+3. AuthController: verify credentials + check is_approved
          │
          ▼
-4. Returns: { user, token } or error
+4. Response: { success, data: { token, user: UserResource } }
          │
          ▼
-5. Store in localStorage: activeUser
+5. AuthContext.login() → saves to localStorage as activeUser
          │
          ▼
-6. Set Authorization header: Bearer {token}
+6. apiClient interceptor → reads token from activeUser
          │
          ▼
-7. Subsequent requests include token
+7. All subsequent requests include: Authorization: Bearer {token}
          │
          ▼
-8. Backend validates via Sanctum middleware
-         │
-         ▼
-9. Request proceeds or returns 401 Unauthorized
+8. On 401: interceptor auto-clears storage + calls logout callback
 ```
 
 ---
 
-## Data Flow
+## API Response Format
 
-### Transaction Creation Flow
+All endpoints return standardized JSON:
 
-```
-TransactionForm (Component)
-         │
-         ├─ User fills form
-         │
-         ├─ Validation (React Hook Form + Zod)
-         │
-         ├─ Submit handler
-         │
-         ▼
-API Service (services/api.js)
-         │
-         ├─ POST /api/transactions
-         ├─ Headers: { Authorization: Bearer token }
-         │
-         ▼
-Backend Route (routes/api.php)
-         │
-         ├─ Middleware: auth:sanctum
-         │
-         ▼
-TransactionController
-         │
-         ├─ Validate input
-         │
-         ▼
-TransactionService
-         │
-         ├─ Business logic
-         │
-         ▼
-Transaction Model
-         │
-         ├─ Database insert
-         │
-         ▼
-Return response to frontend
-         │
-         ▼
-Update component state
-         │
-         ▼
-Refresh Dashboard
+```json
+// Success
+{
+  "success": true,
+  "message": "Optional success message",
+  "data": { /* UserResource / TransactionResource / etc */ }
+}
+
+// Error
+{
+  "success": false,
+  "message": "Indonesian error message"
+}
+
+// Validation Error (422)
+{
+  "message": "Validation error",
+  "errors": {
+    "field": ["Error message in Indonesian"]
+  }
+}
 ```
 
 ---
 
 ## Security Architecture
 
-### Authentication
-- **Sanctum**: Token-based API authentication
-- **CORS**: Whitelist specific origins (localhost:3000, localhost:5173, production domain)
-- **Rate Limiting**: 100 requests/minute per user
+### Layers
+1. **CORS** — Env-driven origin whitelist + Railway pattern
+2. **Sanctum** — Token auth, 7-day expiry
+3. **FormRequest** — Input validation (server-side)
+4. **CheckRole Middleware** — Owner-only route protection
+5. **DB Transactions** — `lockForUpdate()` for stock operations
 
-### Authorization
-- **Role-based access control**: Owner vs Staff
-- **Route middleware**: `auth:sanctum` + `role:owner`
-- **Frontend guards**: Role checks before rendering
-
-### Best Practices
-- ✅ Password hashing (bcrypt)
-- ✅ HTTPS in production
-- ✅ Bearer token in Authorization header (not in URL)
-- ✅ CORS properly configured
-- ✅ Rate limiting enabled
-- ✅ Input validation on both frontend & backend
-- ✅ CSRF protection via Sanctum
-
----
-
-## API Design
-
-### Versioning
-- Base: `/api` (implied v1)
-- Future: `/api/v2` if needed
-
-### Response Format
-All responses follow REST conventions:
-- **2xx**: Success
-- **4xx**: Client error (validation, auth, permissions)
-- **5xx**: Server error
-
-Standard error response:
-```json
-{
-  "message": "Error description",
-  "errors": {
-    "field": ["error message"]
-  }
-}
-```
-
-### Pagination
-List endpoints support:
-- `page`: Page number (default: 1)
-- `limit`: Per page (default: 10, max: 100)
-
-Response includes metadata:
-```json
-{
-  "data": [],
-  "current_page": 1,
-  "total": 100,
-  "per_page": 10,
-  "last_page": 10
-}
-```
+### Token Lifecycle
+- Created on login → stored in `personal_access_tokens`
+- Expires after 7 days (configurable via env)
+- Revoked on: logout, user delete, admin reject
+- 401 response → frontend auto-clears and redirects to login
 
 ---
 
 ## Database Schema
 
-### Key Tables
-- **users**: Authentication & user data
-  - id, name, email, password, role, profile_picture, created_at
-- **transactions**: Sales/expenses/restocks
-  - id, user_id, type, amount, description, transaction_date
-- **price_lists**: Product inventory
-  - id, name, price, quantity, unit, created_at
-- **approvals**: Pending user registrations
-  - id, user_id, status, created_at
+### Tables
+
+| Table | Key Columns | Indexes |
+|-------|------------|---------|
+| `users` | id, username, name, password, role, is_approved, profile_picture | username, (role, is_approved) |
+| `transactions` | id(string), type, date, price_list_id, quantity, price, total, user_id | (date, type), price_list_id, user_id |
+| `price_lists` | id, product_id, product_name, category, price, stock | — |
+| `notifications` | id, user_id, type, title, message, data(json), read_at | (user_id, read_at) |
+| `personal_access_tokens` | tokenable_id, name, token, abilities, expires_at | — |
+
+### Transaction Types
+- `penjualan` — Sale (decreases stock)
+- `pengeluaran` — Expense/Purchase (increases stock)
 
 ---
 
-## Performance Optimization
+## Deployment
 
-### Frontend
-- ✅ Lazy loading routes with React.lazy + Suspense
-- ✅ Code splitting by route
-- ✅ Asset minification & bundling
-- ✅ Image optimization
-- ✅ Caching with localStorage
-- ✅ Reduced bundle size (removed unused deps)
-
-### Backend
-- ✅ Database query optimization
-- ✅ Pagination on list endpoints
-- ✅ Caching where appropriate
-- ✅ Rate limiting to prevent abuse
-
----
-
-## Deployment Architecture
-
-### Development
-- Frontend: `npm start` (localhost:3000)
-- Backend: `php artisan serve` (localhost:8000)
-- Database: Local SQLite or MySQL
-
-### Production (Railway + Vercel)
 ```
-GitHub Repository
+GitHub Repository (kaelleeynx/Tugas_kerja_praktik)
     │
-    ├─ Frontend: Deploy to Vercel
-    │  └─ Branch: main → vercel.json auto-deploy
+    ├─ Frontend → Vercel
+    │  ├─ Root: /frontend
+    │  ├─ Build: npm run build → dist/
+    │  └─ Env: VITE_BACKEND_URL
     │
-    └─ Backend: Deploy to Railway
-       └─ Branch: main → docker → Railway builds
-       └─ Database: Railway MySQL service
+    └─ Backend → Railway
+       ├─ Root: /backend
+       ├─ DB: Railway PostgreSQL
+       └─ Env: CORS_ALLOWED_ORIGINS, SANCTUM_TOKEN_EXPIRATION
 ```
 
-Environment setup in deployment platform:
-- **Frontend (Vercel)**:
-  - `REACT_APP_BACKEND_URL`: Production API URL
-  - Auto builds on git push
-
-- **Backend (Railway)**:
-  - `APP_ENV`: production
-  - `APP_DEBUG`: false
-  - `DB_HOST`, `DB_USER`, etc.: From Railway MySQL
-  - Auto migrates on deploy
-
 ---
 
-## Monitoring & Logging
-
-### Frontend Logging
-- Development: Console logs for debugging
-- Production: Error reporting service (optional via REACT_APP_ENABLE_ERROR_REPORTING)
-
-### Backend Logging
-- Laravel logs in `storage/logs/`
-- Request logging for debugging
-- Error tracking for production issues
-
----
-
-## Future Enhancements
-
-1. **TypeScript**: Migrate both frontend & backend
-2. **Testing**: Jest + React Testing Library for frontend, PHPUnit for backend
-3. **GraphQL**: Optional alternative API layer
-4. **WebSockets**: Real-time notifications
-5. **Mobile App**: React Native version
-6. **Analytics**: User behavior tracking
-7. **Advanced Reports**: PDF export, charts, forecasting
-8. **Two-factor authentication**: Enhanced security
-
----
-
-## Development Workflow
-
-See `DEVELOPMENT_WORKFLOW.md` for:
-- Git branching strategy
-- Commit conventions
-- PR process
-- Code review guidelines
-
----
-
-**Last Updated**: December 3, 2025  
-**Version**: 1.0.0
+**Last Updated**: April 2026  
+**Version**: 3.0.0

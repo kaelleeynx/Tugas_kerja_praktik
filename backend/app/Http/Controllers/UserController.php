@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -16,28 +18,41 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $users->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'role' => $user->role,
-                    'last_login_at' => $user->last_login_at,
-                    'profile_picture' => $user->profile_picture ? url('storage/' . $user->profile_picture) : null,
-                ];
-            })
+            'data' => UserResource::collection($users)
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function show($id)
     {
         $user = User::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required',
-            'password' => 'nullable|min:6',
-            'profile_picture' => 'nullable|image|max:2048' // Max 2MB
+        return response()->json([
+            'success' => true,
+            'data' => new UserResource($user)
         ]);
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('q', '');
+        
+        $users = User::where(function ($q) use ($query) {
+                $q->where('name', 'LIKE', "%{$query}%")
+                  ->orWhere('username', 'LIKE', "%{$query}%");
+            })
+            ->where('role', '!=', 'owner')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => UserResource::collection($users)
+        ]);
+    }
+
+    public function update(UpdateProfileRequest $request, $id)
+    {
+        $user = User::findOrFail($id);
 
         $data = ['name' => $request->name];
 
@@ -58,13 +73,10 @@ class UserController extends Controller
 
         $user->update($data);
 
-        // Return the updated user data including the full URL for the profile picture
-        $user->profile_picture = $user->profile_picture ? url('storage/' . $user->profile_picture) : null;
-
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diperbarui',
-            'data' => $user
+            'data' => new UserResource($user->refresh())
         ]);
     }
 
@@ -84,6 +96,8 @@ class UserController extends Controller
             Storage::disk('public')->delete($user->profile_picture);
         }
 
+        // Revoke all tokens before deletion
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json([

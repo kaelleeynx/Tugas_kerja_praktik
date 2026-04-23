@@ -1,58 +1,46 @@
 # Panduan Deployment (Railway + Vercel)
 
-Panduan ini menjelaskan cara men-deploy aplikasi secara penuh ke cloud: Backend di **Railway** (termasuk Database) dan Frontend di **Vercel**.
+Panduan lengkap untuk deploy aplikasi Toko Besi Serta Guna ke cloud.
 
-## 🚀 Perubahan Penting - Vite Migration
-
-**PENTING**: Frontend sekarang menggunakan **Vite** (bukan Create React App). Ada beberapa perubahan konfigurasi:
-
-### Frontend Changes
-
-- **Build Output**: `dist/` (dulu: `build/`)
-- **Environment Variables**: `VITE_*` (dulu: `REACT_APP_*`)
-- **Dev Port**: 3000 (dulu: 3000, tapi lebih cepat!)
+> **Stack**: Laravel 10 + React 18 + Vite 8 + PostgreSQL
 
 ---
 
 ## Bagian 1: Deploy Backend ke Railway
 
-Railway adalah platform cloud yang sangat mudah untuk deploy aplikasi Laravel dan database MySQL.
-
 ### Step-by-Step:
 
-1. **Daftar/Login**: Kunjungi [railway.app](https://railway.app/) dan login (bisa pakai GitHub).
+1. **Login**: [railway.app](https://railway.app/) → login dengan GitHub.
 
-2. **Buat Project Baru**: Klik "New Project" > "Deploy from GitHub repo".
+2. **Buat Project**: "New Project" → "Deploy from GitHub repo" → pilih `Tugas_kerja_praktik`.
 
-3. **Pilih Repository**: Pilih repo `Tugas_metopeen`.
+3. **Root Directory**: Set ke `/backend`.
 
-4. **Konfigurasi Service (Backend)**:
+4. **Tambahkan Database**:
+   - "New" → "Database" → "PostgreSQL"
+   - Copy variabel koneksi database
 
-   - Railway akan mendeteksi folder `backend` secara otomatis atau Anda perlu menambahkannya sebagai service.
-   - Pastikan **Root Directory** diatur ke `/backend`.
+5. **Environment Variables** (service backend):
 
-5. **Tambahkan Database**:
+   | Variable | Value |
+   |----------|-------|
+   | `APP_KEY` | Copy dari local `.env` |
+   | `APP_ENV` | `production` |
+   | `APP_DEBUG` | `false` |
+   | `APP_URL` | `https://your-backend.up.railway.app` |
+   | `CORS_ALLOWED_ORIGINS` | `https://your-frontend.vercel.app` |
+   | `SANCTUM_TOKEN_EXPIRATION` | `10080` |
+   | `FILESYSTEM_DISK` | `public` |
 
-   - Di dashboard project Railway, klik "New" > "Database" > "MySQL".
-   - Tunggu sampai database dibuat.
+6. **Deploy** → tunggu build selesai.
 
-6. **Hubungkan Laravel ke MySQL**:
-
-   - Klik service database MySQL > tab "Variables". Copy semua variabel (MYSQLHOST, MYSQLUSER, dll).
-   - Klik service backend Laravel > tab "Variables".
-   - Paste variabel database tadi.
-   - Tambahkan variabel tambahan:
-     - `APP_KEY`: (Copy dari file `.env` di laptop Anda, misal `base64:...`)
-     - `APP_ENV`: `production`
-     - `APP_DEBUG`: `false`
-     - `FRONTEND_URL`: `https://yourapp.vercel.app` (URL Vercel lu nanti)
-
-7. **Deploy Backend**: Klik "Deploy" dan tunggu selesai.
-
-8. **Migrate Database**:
-   - Di Railway, buka service Backend > tab "Settings" > "Deploy Command".
-   - Ubah menjadi: `php artisan migrate --force`
-   - Atau gunakan **Railway CLI** di laptop untuk migrate manual.
+7. **Migrate Database**:
+   ```bash
+   # Via Railway CLI
+   railway run php artisan migrate --force
+   railway run php artisan db:seed
+   railway run php artisan storage:link
+   ```
 
 ---
 
@@ -60,225 +48,134 @@ Railway adalah platform cloud yang sangat mudah untuk deploy aplikasi Laravel da
 
 ### Step-by-Step:
 
-1. **Login ke Vercel**: Kunjungi [vercel.com](https://vercel.com) dan login dengan GitHub.
+1. **Login**: [vercel.com](https://vercel.com) → login dengan GitHub.
 
-2. **Import Project**:
+2. **Import Project**: "Add New" → "Project" → pilih repo.
 
-   - Klik "Add New" > "Project"
-   - Pilih repository `Tugas_metopeen`
-   - Klik "Import"
+3. **Project Settings**:
 
-3. **Konfigurasi Project Settings**:
-
-   **PENTING! Pengaturan ini berbeda dari CRA:**
-
-   - **Framework Preset**: Vite
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm run build` (default sudah OK)
-   - **Output Directory**: **`dist`** ← PENTING! Bukan 'build'
-   - **Install Command**: `npm install` (default OK)
+   | Setting | Value |
+   |---------|-------|
+   | Framework Preset | **Vite** |
+   | Root Directory | `frontend` |
+   | Build Command | `npm run build` |
+   | Output Directory | **`dist`** (bukan `build`!) |
 
 4. **Environment Variables**:
 
-   Klik "Environment Variables" dan tambahkan:
+   | Name | Value |
+   |------|-------|
+   | `VITE_BACKEND_URL` | `https://your-backend.up.railway.app` |
 
-   | Name               | Value                                       |
-   | ------------------ | ------------------------------------------- |
-   | `VITE_BACKEND_URL` | `https://backend-production.up.railway.app` |
+   > ⚠️ Prefix harus `VITE_` — URL **tanpa** `/api` di akhir
 
-   **PENTING**:
-
-   - Prefix harus `VITE_` bukan `REACT_APP_`
-   - URL Railway **tanpa** `/api` di akhir
-   - Gunakan `https://`
-
-5. **Deploy**: Klik "Deploy" dan tunggu build selesai (~1-2 menit).
+5. **Deploy** → tunggu build selesai (~1-2 menit).
 
 ---
 
-## Bagian 3: Update Project yang Sudah Ada
+## Bagian 3: Post-Deployment
 
-Jika project Vercel lu sudah ada dari deployment sebelumnya (pakai CRA), lakukan ini:
+### Backend Config Cache
 
-### Update Vercel Settings:
+```bash
+railway run php artisan config:cache
+railway run php artisan route:cache
+```
 
-1. **Buka Project**: Di Vercel dashboard, pilih project frontend lu.
+### Verify CORS
 
-2. **Settings > General**:
+Pastikan `CORS_ALLOWED_ORIGINS` di Railway match dengan URL Vercel:
+```
+https://your-app.vercel.app
+```
 
-   - Framework Preset: Ubah ke **Vite**
-   - Root Directory: Tetap `frontend`
-
-3. **Settings > Build & Development Settings**:
-
-   - Build Command: `npm run build` (sudah benar)
-   - Output Directory: **Ubah dari `build` ke `dist`** ← CRITICAL!
-   - Install Command: `npm install` (tetap)
-
-4. **Settings > Environment Variables**:
-   - **DELETE**: `REACT_APP_BACKEND_URL`
-   - **ADD NEW**:
-     - Name: `VITE_BACKEND_URL`
-     - Value: `https://tugasmetopeen-production.up.railway.app`
-5. **Deployments > Redeploy**:
-   - Pilih deployment terakhir
-   - Klik titik 3 > "Redeploy"
-   - Tunggu build selesai
+CORS sudah dikonfigurasi via env var — tidak perlu edit kode.
 
 ---
 
 ## Bagian 4: Testing
 
-1. **Cek Backend**:
-
-   - Buka: `https://your-backend.railway.app/api/users`
-   - Harusnya error 401 (Unauthenticated) - ini normal!
-   - Berarti API jalan
+1. **Cek Backend API**:
+   ```
+   GET https://your-backend.up.railway.app/api/transactions
+   → Expected: 401 Unauthenticated (ini normal!)
+   ```
 
 2. **Cek Frontend**:
-   - Buka URL Vercel Anda
-   - Harusnya muncul halaman login
-   - Coba login dengan user default:
-     - Username: `owner`
-     - Password: `owner123`
-3. **Jika Login Berhasil**:
-   - ✅ Selamat! Aplikasi Anda sudah full online!
-   - Coba semua fitur (Dashboard, Transactions, etc.)
+   - Buka URL Vercel
+   - Login: `owner` / `owner123`
+
+3. **Smoke Test**:
+   - ✅ Dashboard loads → data transaksi tampil
+   - ✅ Buat transaksi → stok terupdate
+   - ✅ Settings → update profil + foto
+   - ✅ User Management → approve/reject user
+   - ✅ Reports → generate laporan
+   - ✅ Dark mode toggle → smooth transition
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Frontend Build Error di Vercel
-
-**Error**: "Failed to load module" atau "dist not found"
-
-**Fix**:
-
-- Pastikan Output Directory = `dist` (bukan `build`)
-- Check package.json: `"build": "vite build"` harus ada
-
----
-
 ### CORS Error
 
-**Error**: Frontend ga bisa akses backend
+**Gejala**: Frontend ga bisa akses backend
+
+**Fix**: Update env var `CORS_ALLOWED_ORIGINS` di Railway dengan URL Vercel yang benar. Restart service.
+
+### Build Error di Vercel
+
+**Gejala**: "dist not found" atau build gagal
 
 **Fix**:
+- Output Directory harus `dist` (bukan `build`)
+- Framework Preset: `Vite`
+- Check `package.json` punya `"build": "vite build"`
 
-1. Buka `backend/config/cors.php`
-2. Update `allowed_origins`:
-   ```php
-   'allowed_origins' => [
-       'http://localhost:3000',
-       'https://yourapp.vercel.app', // ← Tambah ini!
-   ],
-   ```
-3. Push ke GitHub, Railway auto-redeploy
+### Token Expired
 
----
+**Gejala**: Auto-logout setelah beberapa hari
+
+**Info**: Token expiry default 7 hari. Update `SANCTUM_TOKEN_EXPIRATION` di Railway kalau mau lebih lama (dalam menit).
 
 ### Database Connection Error
 
-**Error**: "SQLSTATE[HY000] [2002]"
+**Gejala**: "SQLSTATE[HY000] [2002]"
 
-**Fix**:
-
-- Cek environment variables di Railway
-- Pastikan `DB_HOST`, `DB_PORT`, `DB_DATABASE`, dll sudah benar
-- Coba connection dari Railway CLI: `railway connect`
-
----
-
-### Environment Variable ga Ke-Load
-
-**Error**: `Cannot read VITE_BACKEND_URL` di console
-
-**Fix**:
-
-- Pastikan variable name prefix `VITE_` (bukan `REACT_APP_`)
-- Redeploy di Vercel setelah menambah env vars
-- Check di Build Logs apakah variable ke-detect
-
----
-
-### PHP Version Error di Railway
-
-**Error**: `requires php >=8.4`
-
-**Fix**:
-
-1. Buka `backend/composer.json`
-2. Ubah `"php": "^8.2"` atau sesuaikan dengan Railway
-3. Push ke GitHub
+**Fix**: Pastikan env database dari Railway PostgreSQL sudah ter-copy dengan benar.
 
 ---
 
 ## 📋 Checklist Deployment
 
 ### Pre-Deployment
-
-- [ ] Local `npm run build` berhasil (check ada folder `dist/`)
-- [ ] Backend `.env` production-ready (`APP_DEBUG=false`)
-- [ ] Database backup sudah dibuat
+- [ ] `npm run build` berhasil lokal (0 errors)
+- [ ] `.env.example` up to date
 - [ ] Git committed & pushed
 
 ### Backend (Railway)
-
-- [ ] Database MySQL created
-- [ ] Environment variables set
-- [ ] Migrations ran successfully
-- [ ] API endpoint responding (`/api/users` returns 401)
+- [ ] PostgreSQL database created
+- [ ] Environment variables set (termasuk `CORS_ALLOWED_ORIGINS`)
+- [ ] `php artisan migrate --force` berhasil
+- [ ] `php artisan storage:link` berhasil
+- [ ] API responding (GET /api/transactions → 401)
 
 ### Frontend (Vercel)
-
 - [ ] Output Directory = `dist`
-- [ ] `VITE_BACKEND_URL` environment variable added
+- [ ] `VITE_BACKEND_URL` set
 - [ ] Build successful
-- [ ] Website loads (`https://yourapp.vercel.app`)
+- [ ] Website loads
 
 ### Post-Deployment
-
-- [ ] Login page works
-- [ ] Login with owner credentials successful
-- [ ] Dashboard loads with data
-- [ ] Transactions can be created
-- [ ] Dark mode toggle works
+- [ ] Login berhasil
+- [ ] Dashboard loads dengan data
+- [ ] Transaksi bisa dibuat
+- [ ] Profile picture bisa diupload
+- [ ] Dark mode works
 - [ ] No console errors
 
 ---
 
-## 🚀 Quick Deploy Commands
-
-### Push Updates
-
-```bash
-# After making changes locally
-git add .
-git commit -m "Your commit message"
-git push origin main
-
-# Railway & Vercel auto-deploy!
-```
-
-### Manual Railway Migrate
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login
-railway login
-
-# Link project
-railway link
-
-# Run migrations
-railway run php artisan migrate
-```
-
----
-
-**Version**: 2.0.0 (Vite)  
-**Last Updated**: December 2024  
-**Deployment Platforms**: Railway + Vercel
+**Version**: 3.0.0  
+**Last Updated**: April 2026  
+**Platforms**: Railway + Vercel

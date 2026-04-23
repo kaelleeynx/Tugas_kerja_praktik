@@ -55,7 +55,7 @@ export default function LoginForm({ onLogin }) {
       onLogin({ token, ...user });
       resetForm();
     } catch (error) {
-      setError(error.message || 'Login gagal');
+      setError(error.response?.data?.message || error.message || 'Login gagal');
     }
   };
 
@@ -68,13 +68,13 @@ export default function LoginForm({ onLogin }) {
 
     try {
       const response = await register({ username, password, name, role });
-      setSuccess(response.message || 'Registrasi berhasil');
+      setSuccess(response.message || 'Registrasi berhasil! Menunggu persetujuan...');
       setTimeout(() => {
         setIsRegister(false);
         resetForm();
       }, 2000);
     } catch (error) {
-      setError(error.message || 'Registrasi gagal');
+      setError(error.response?.data?.message || error.message || 'Registrasi gagal');
     }
   };
 

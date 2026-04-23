@@ -1,245 +1,143 @@
-const getBaseUrl = () => {
-  // Support both Vite (import.meta.env) and CRA (process.env) formats
-  const backendUrl = import.meta?.env?.VITE_BACKEND_URL || process.env?.REACT_APP_BACKEND_URL;
-  if (backendUrl) {
-    return `${backendUrl}/api`;
-  }
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-     return 'http://localhost:8000/api';
-  }
-  // Use Railway backend for production
-  return 'https://tugasmetopeen-production.up.railway.app/api';
-};
+/**
+ * API Service — Centralized API functions using Axios client
+ * 
+ * All functions use apiClient which automatically:
+ * - Attaches Bearer token from localStorage
+ * - Handles 401 → auto-logout
+ * - Sets Accept/Content-Type headers
+ */
+import apiClient from './apiClient';
 
-const API_URL = getBaseUrl();
+// ─── Auth ────────────────────────────────────────────────────────────────
 
 export const login = async (username, password) => {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({ username, password }),
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error saat login');
-  }
+  const { data } = await apiClient.post('/auth/login', { username, password });
   return data;
 };
 
 export const register = async (userData) => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error saat registrasi');
-  }
+  const { data } = await apiClient.post('/auth/register', userData);
   return data;
 };
 
-export const logout = async (token) => {
-  const response = await fetch(`${API_URL}/auth/logout`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error saat logout');
-  }
+export const logout = async () => {
+  const { data } = await apiClient.post('/auth/logout');
   return data;
 };
 
-export const getUsers = async (token) => {
-  const response = await fetch(`${API_URL}/users`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error mengambil data pengguna');
-  }
-  // Handle both direct array response and { data: [] } response format
+// ─── Users ───────────────────────────────────────────────────────────────
+
+export const getUsers = async () => {
+  const { data } = await apiClient.get('/users');
   return Array.isArray(data) ? data : (data.data || []);
 };
 
-export const createTransaction = async (transactionData, token) => {
-  const response = await fetch(`${API_URL}/transactions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(transactionData),
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error membuat transaksi');
-  }
-  return data;
-};
-
-export const getTransactions = async (token) => {
-  const response = await fetch(`${API_URL}/transactions`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error mengambil data transaksi');
-  }
-  // Handle both direct array response and { data: [] } response format
-  return Array.isArray(data) ? data : (data.data || []);
-};
-
-export const deleteTransaction = async (id, token) => {
-  const response = await fetch(`${API_URL}/transactions/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error menghapus transaksi');
-  }
-  return data;
-};
-
-export const updateUser = async (userId, userData, token) => {
+export const updateUser = async (userId, userData) => {
   const isFormData = userData instanceof FormData;
-  
-  // Laravel requires POST with _method: PUT for multipart/form-data updates
-  const method = isFormData ? 'POST' : 'PUT';
-  
+
   if (isFormData) {
+    // Laravel requires POST with _method: PUT for multipart/form-data
     userData.append('_method', 'PUT');
+    const { data } = await apiClient.post(`/users/${userId}`, userData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
   }
 
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json',
-  };
-
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const response = await fetch(`${API_URL}/users/${userId}`, {
-    method: method,
-    headers: headers,
-    body: isFormData ? userData : JSON.stringify(userData),
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error memperbarui pengguna');
-  }
+  const { data } = await apiClient.put(`/users/${userId}`, userData);
   return data;
 };
 
-export const deleteUser = async (userId, token) => {
-  const response = await fetch(`${API_URL}/users/${userId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error menghapus pengguna');
-  }
+export const deleteUser = async (userId) => {
+  const { data } = await apiClient.delete(`/users/${userId}`);
   return data;
 };
 
-export const getPendingApprovals = async (token) => {
-  const response = await fetch(`${API_URL}/approvals`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error mengambil data persetujuan');
-  }
-  // Handle both direct array response and { data: [] } response format
+// ─── Transactions ────────────────────────────────────────────────────────
+
+export const getTransactions = async () => {
+  const { data } = await apiClient.get('/transactions');
   return Array.isArray(data) ? data : (data.data || []);
 };
 
-export const approveUser = async (userId, token) => {
-  const response = await fetch(`${API_URL}/approvals/${userId}/approve`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error menyetujui pengguna');
-  }
+export const createTransaction = async (transactionData) => {
+  const { data } = await apiClient.post('/transactions', transactionData);
   return data;
 };
 
-export const rejectUser = async (userId, token) => {
-  const response = await fetch(`${API_URL}/approvals/${userId}/reject`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-  });
-  
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Error menolak pengguna');
-  }
+export const updateTransaction = async (id, updateData) => {
+  const { data } = await apiClient.put(`/transactions/${id}`, updateData);
   return data;
 };
 
-export const updateTransaction = async (id, data, token) => {
-  const response = await fetch(`${API_URL}/transactions/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  
-  const responseData = await response.json();
-  if (!response.ok) {
-    throw new Error(responseData.message || 'Error memperbarui transaksi');
-  }
-  return responseData;
+export const deleteTransaction = async (id) => {
+  const { data } = await apiClient.delete(`/transactions/${id}`);
+  return data;
+};
+
+// ─── Approvals ───────────────────────────────────────────────────────────
+
+export const getPendingApprovals = async () => {
+  const { data } = await apiClient.get('/approvals');
+  return Array.isArray(data) ? data : (data.data || []);
+};
+
+export const approveUser = async (userId) => {
+  const { data } = await apiClient.post(`/approvals/${userId}/approve`);
+  return data;
+};
+
+export const rejectUser = async (userId) => {
+  // Backend route is POST, NOT DELETE
+  const { data } = await apiClient.post(`/approvals/${userId}/reject`);
+  return data;
+};
+
+// ─── Price List ──────────────────────────────────────────────────────────
+
+export const getPriceList = async () => {
+  const { data } = await apiClient.get('/price-list');
+  return Array.isArray(data) ? data : (data.data || []);
+};
+
+export const updatePriceItem = async (id, itemData) => {
+  const { data } = await apiClient.put(`/price-list/${id}`, itemData);
+  return data;
+};
+
+export const sellPriceItem = async (id, quantity) => {
+  const { data } = await apiClient.post(`/price-list/${id}/sale`, { quantity });
+  return data;
+};
+
+export const restockPriceItem = async (id, quantity) => {
+  const { data } = await apiClient.post(`/price-list/${id}/restock`, { quantity });
+  return data;
+};
+
+// ─── Notifications ───────────────────────────────────────────────────────
+
+export const getNotifications = async () => {
+  const { data } = await apiClient.get('/notifications');
+  return data;
+};
+
+export const getUnreadNotificationCount = async () => {
+  const { data } = await apiClient.get('/notifications/unread-count');
+  return data;
+};
+
+export const markNotificationRead = async (id) => {
+  const { data } = await apiClient.post(`/notifications/${id}/read`);
+  return data;
+};
+
+export const markAllNotificationsRead = async () => {
+  const { data } = await apiClient.post('/notifications/mark-all-read');
+  return data;
+};
+
+export const deleteNotification = async (id) => {
+  const { data } = await apiClient.delete(`/notifications/${id}`);
+  return data;
 };
