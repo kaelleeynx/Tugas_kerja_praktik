@@ -26,7 +26,10 @@ export const logout = async () => {
 };
 
 export const updateMyProfile = async (formData) => {
-  // Uses POST with _method: PUT for multipart/form-data support
+  // F4 NOTE: Laravel tidak support PUT dengan multipart/form-data secara native.
+  // Workaround: kirim POST dengan _method: PUT (Laravel method spoofing).
+  // Ini adalah pattern resmi Laravel untuk file upload via PUT/PATCH.
+  // Ref: https://laravel.com/docs/routing#form-method-spoofing
   formData.append('_method', 'PUT');
   const { data } = await apiClient.post('/auth/me', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -45,8 +48,9 @@ export const changeMyPassword = async (currentPassword, newPassword) => {
 
 // ─── Users ───────────────────────────────────────────────────────────────
 
-export const getUsers = async () => {
-  const { data } = await apiClient.get('/users');
+export const getUsers = async (params = {}) => {
+  // FIX F5: Support pagination params
+  const { data } = await apiClient.get('/users', { params });
   return Array.isArray(data) ? data : (data.data || []);
 };
 
@@ -73,9 +77,14 @@ export const deleteUser = async (userId) => {
 
 // ─── Transactions ────────────────────────────────────────────────────────
 
-export const getTransactions = async () => {
-  const { data } = await apiClient.get('/transactions');
-  return Array.isArray(data) ? data : (data.data || []);
+export const getTransactions = async (params = {}) => {
+  // FIX F2/F6: Support pagination params dan handle paginated response
+  const { data } = await apiClient.get('/transactions', { params });
+  // Backend returns paginated: { success, data: [...], meta: {...} }
+  // or plain array for backward compat
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.data)) return data.data;
+  return [];
 };
 
 export const createTransaction = async (transactionData) => {

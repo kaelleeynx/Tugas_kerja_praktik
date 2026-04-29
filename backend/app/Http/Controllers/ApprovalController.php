@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Notification;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ApprovalController extends Controller
 {
@@ -43,6 +44,12 @@ class ApprovalController extends Controller
         $user->is_approved = true;
         $user->save();
 
+        // FIX L1: Log approval action
+        Log::info('Admin user approved', [
+            'approved_user_id' => $user->id,
+            'approved_by'      => request()->user()->id,
+        ]);
+
         // Notify the approved user
         Notification::create([
             'user_id' => $user->id,
@@ -72,6 +79,13 @@ class ApprovalController extends Controller
         // Revoke tokens before deletion
         $user->tokens()->delete();
         $user->delete();
+
+        // FIX L1: Log rejection action
+        Log::info('Admin user rejected and deleted', [
+            'rejected_user_id'       => $user->id,
+            'rejected_user_username' => $user->username,
+            'rejected_by'            => request()->user()->id,
+        ]);
 
         return response()->json([
             'success' => true,

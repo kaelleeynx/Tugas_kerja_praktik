@@ -9,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import './App.css';
 
 // Lazy load heavy components for better performance
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -35,13 +34,15 @@ function OwnerRoute({ children }) {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role !== 'owner') {
     return (
-      <div className="not-auth card flex flex-col items-center justify-center py-16 gap-4">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-gray-500">
+      <div className="card flex flex-col items-center justify-center py-16 gap-4 m-6">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+          className="text-[var(--text-muted)]">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="8" y1="12" x2="16" y2="12"></line>
         </svg>
-        <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Akses Ditolak</h4>
-        <p className="text-gray-500 dark:text-gray-400">Halaman ini hanya dapat diakses oleh Owner.</p>
+        <h4 className="text-lg font-semibold text-[var(--text-main)]">Akses Ditolak</h4>
+        <p className="text-sm text-[var(--text-muted)]">Halaman ini hanya dapat diakses oleh Owner.</p>
       </div>
     );
   }

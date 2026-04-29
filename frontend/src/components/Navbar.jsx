@@ -5,6 +5,22 @@ import { useAuth } from '../context/AuthContext';
 import { getPendingApprovals } from '../services/api';
 import NotificationBell from './NotificationBell';
 
+// ─── Nav config ───────────────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { to: '/dashboard',    icon: 'dashboard',    label: 'Dashboard' },
+  { to: '/transactions', icon: 'plus',         label: 'Input Transaksi' },
+  { to: '/pricelist',    icon: 'package',      label: 'Daftar Barang' },
+];
+
+const OWNER_NAV_ITEMS = [
+  { to: '/reports',   icon: 'file',  label: 'Laporan' },
+  { to: '/users',     icon: 'users', label: 'Anggota' },
+  { to: '/approvals', icon: 'inbox', label: 'Inbox', badge: true },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────
+
 export default function Navbar({ onLogout }) {
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
@@ -12,293 +28,392 @@ export default function Navbar({ onLogout }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (user && user.role === 'owner') {
+    if (user?.role === 'owner') {
+      let abortController = null;
+      let isRunning = false;
+
       const fetchPending = async () => {
+        if (isRunning) return;
+        isRunning = true;
+        abortController = new AbortController();
+
         try {
-          const response = await getPendingApprovals();
+          const response = await getPendingApprovals(abortController.signal);
           const data = Array.isArray(response) ? response : (response.data || []);
           setPendingCount(Array.isArray(data) ? data.length : 0);
-        } catch (error) {
-          // Silently fail — notification count is non-critical
+        } catch (err) {
+          if (err?.name === 'AbortError' || err?.name === 'CanceledError') return;
+        } finally {
+          isRunning = false;
         }
       };
-      fetchPending();
-      const interval = setInterval(fetchPending, 30000);
-      return () => clearInterval(interval);
+
+      // Stagger by 3s — Dashboard fires at 0s, NotificationBell at 1.5s, Approvals at 3s
+      const initialDelay = setTimeout(fetchPending, 3000);
+      const interval = setInterval(fetchPending, 35000);
+      return () => {
+        clearTimeout(initialDelay);
+        clearInterval(interval);
+        abortController?.abort();
+      };
     }
   }, [user]);
 
+  const allNavItems = [
+    ...NAV_ITEMS,
+    ...(user?.role === 'owner' ? OWNER_NAV_ITEMS : []),
+  ];
+
   return (
     <>
-      {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-white via-blue-50/50 to-cyan-50/50 dark:from-gray-800 dark:via-gray-800/80 dark:to-gray-800/60 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between px-4 z-50 shadow-sm shadow-black/5">
-        <button 
+      {/* ── Mobile Header ─────────────────────────────────────────────── */}
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 z-50
+        bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]
+        flex items-center justify-between px-4">
+
+        {/* Hamburger */}
+        <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50"
+          aria-label={sidebarOpen ? 'Tutup menu' : 'Buka menu'}
+          className="p-2 rounded-[var(--radius-default)] text-[var(--text-muted)]
+            hover:text-[var(--text-main)] hover:bg-[var(--bg-app)] transition-colors"
         >
-          {sidebarOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          )}
+          {sidebarOpen ? <XIcon size={22} /> : <MenuIcon size={22} />}
         </button>
-        <div className="flex-1 text-center">
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Toko Besi Serta Guna</h1>
-        </div>
-        <button 
+
+        {/* Brand */}
+        <span className="font-bold text-base text-[var(--text-main)] tracking-tight">
+          Toko Besi Serta Guna
+        </span>
+
+        {/* Theme toggle */}
+        <button
           onClick={toggleTheme}
-          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50"
+          aria-label={theme === 'light' ? 'Aktifkan dark mode' : 'Aktifkan light mode'}
+          className="p-2 rounded-[var(--radius-default)] text-[var(--text-muted)]
+            hover:text-[var(--text-main)] hover:bg-[var(--bg-app)] transition-colors"
         >
-          {theme === 'light' ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-          )}
+          {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
         </button>
       </header>
 
-      {/* Mobile Sidebar */}
+      {/* ── Mobile Sidebar Overlay ────────────────────────────────────── */}
       {sidebarOpen && (
-        <aside className="md:hidden fixed top-16 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200/50 dark:border-gray-700/50 z-40 max-h-[calc(100vh-64px)] overflow-y-auto shadow-lg shadow-black/10">
-          <nav className="flex flex-col p-4 gap-1">
-            <MobileNavItem to="/dashboard" icon={<DashboardIcon size={20} />} label="Dashboard" />
-            <MobileNavItem to="/transactions" icon={<PlusIcon size={20} />} label="Input Transaksi" />
-            <MobileNavItem to="/pricelist" icon={<DollarIcon size={20} />} label="Daftar Barang" />
-            
-            {user && user.role === 'owner' && (
-              <>
-                <MobileNavItem to="/reports" icon={<FileIcon size={20} />} label="Laporan" />
-                <MobileNavItem to="/users" icon={<UsersIcon size={20} />} label="Anggota" />
-                <MobileNavItem to="/approvals" icon={<InboxIcon size={20} />} label="Inbox" badge={pendingCount} />
-              </>
-            )}
+        <div
+          className="md:hidden fixed inset-0 z-30 top-16 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-            <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+      {/* ── Mobile Sidebar Drawer ─────────────────────────────────────── */}
+      {sidebarOpen && (
+        <aside className="md:hidden fixed top-16 left-0 right-0 z-40
+          bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]
+          max-h-[calc(100vh-64px)] overflow-y-auto">
+          <nav className="flex flex-col p-3 gap-0.5">
+            {allNavItems.map((item) => (
+              <MobileNavItem
+                key={item.to}
+                to={item.to}
+                icon={<NavIcon name={item.icon} size={18} />}
+                label={item.label}
+                badge={item.badge ? pendingCount : 0}
+              />
+            ))}
 
-            <MobileNavItem to="/settings" icon={<SettingsIcon size={20} />} label="Pengaturan" />
+            <div className="my-2 border-t border-[var(--border-subtle)]" />
 
-            <button 
+            <MobileNavItem
+              to="/settings"
+              icon={<NavIcon name="settings" size={18} />}
+              label="Pengaturan"
+            />
+
+            <button
               onClick={onLogout}
-              className="w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-sm mt-2 border border-red-200 dark:border-red-900/30"
+              className="mt-1 w-full flex items-center gap-3 px-3 py-2.5
+                rounded-[var(--radius-default)] text-sm font-medium
+                text-[var(--status-danger)] border border-[var(--status-danger-bg)]
+                hover:bg-[var(--status-danger-bg)] transition-colors"
             >
-              <LogoutIcon size={20} />
+              <NavIcon name="logout" size={18} />
               Logout
             </button>
           </nav>
         </aside>
       )}
 
-      {/* Desktop Sidebar Navigation */}
-      <aside className="hidden md:fixed md:left-0 md:top-0 md:h-screen md:w-20 md:bg-gray-900 dark:md:bg-gray-950 md:border-r md:border-gray-800/50 md:flex md:flex-col md:items-center md:py-8 md:gap-6 md:z-40">
-        {/* Logo */}
-        <div className="hidden md:w-12 md:h-12 md:rounded-xl md:bg-gradient-to-br md:from-cyan-500 md:via-blue-500 md:to-purple-600 md:flex md:items-center md:justify-center md:font-bold md:text-white md:text-lg md:shadow-lg md:shadow-cyan-500/30 md:cursor-pointer md:hover:shadow-cyan-500/50 md:transition-shadow md:duration-300">
-          <DollarIcon size={24} />
+      {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-20 z-50 flex-col
+        bg-[var(--bg-app)] border-r border-[var(--border-subtle)]">
+
+        {/* Logo mark */}
+        <div className="h-16 flex items-center justify-center border-b border-[var(--border-subtle)]">
+          <div className="w-9 h-9 rounded-[var(--radius-card)] flex items-center justify-center
+            bg-[var(--brand)] text-white font-bold text-sm select-none">
+            TB
+          </div>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="hidden md:flex md:flex-col md:gap-3 md:flex-1">
-          <DesktopNavItem to="/dashboard" icon={<DashboardIcon size={24} />} title="Dashboard" />
-          <DesktopNavItem to="/transactions" icon={<PlusIcon size={24} />} title="Input Transaksi" />
-          <DesktopNavItem to="/pricelist" icon={<DollarIcon size={24} />} title="Daftar Barang" />
-          
-          {user && user.role === 'owner' && (
-            <>
-              <DesktopNavItem to="/reports" icon={<FileIcon size={24} />} title="Laporan" />
-              <DesktopNavItem to="/users" icon={<UsersIcon size={24} />} title="Anggota" />
-              <DesktopNavItem to="/approvals" icon={<InboxIcon size={24} />} title="Inbox" badge={pendingCount} />
-            </>
-          )}
+        {/* Nav items */}
+        <nav className="flex flex-col gap-1 flex-1 px-2 py-3">
+          {allNavItems.map((item) => (
+            <DesktopNavItem
+              key={item.to}
+              to={item.to}
+              icon={<NavIcon name={item.icon} size={20} />}
+              title={item.label}
+              badge={item.badge ? pendingCount : 0}
+            />
+          ))}
         </nav>
 
-        {/* Bottom Icons */}
-        <div className="hidden md:flex md:flex-col md:gap-3 md:border-t md:border-gray-800/50 md:pt-4">
-          <DesktopNavItem to="/settings" icon={<SettingsIcon size={24} />} title="Pengaturan" />
+        {/* Bottom actions */}
+        <div className="flex flex-col gap-1 px-2 py-3 border-t border-[var(--border-subtle)]">
+          <DesktopNavItem
+            to="/settings"
+            icon={<NavIcon name="settings" size={20} />}
+            title="Pengaturan"
+          />
 
-          <button 
+          {/* Theme toggle */}
+          <button
             onClick={toggleTheme}
-            className="w-12 h-12 rounded-lg text-gray-400 hover:text-amber-400 transition-all duration-200 flex items-center justify-center hover:bg-gray-700/50"
             title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+            className="w-full h-10 flex items-center justify-center rounded-[var(--radius-default)]
+              text-[var(--text-muted)] hover:text-[var(--text-main)]
+              hover:bg-[var(--bg-surface)] transition-colors"
           >
-            {theme === 'light' ? <MoonIcon size={24} /> : <SunIcon size={24} />}
+            {theme === 'light' ? <MoonIcon size={20} /> : <SunIcon size={20} />}
           </button>
 
-          <button 
+          {/* Logout */}
+          <button
             onClick={onLogout}
-            className="w-12 h-12 rounded-lg text-gray-400 hover:text-red-400 transition-all duration-200 flex items-center justify-center hover:bg-gray-700/50"
             title="Logout"
+            className="w-full h-10 flex items-center justify-center rounded-[var(--radius-default)]
+              text-[var(--text-muted)] hover:text-[var(--status-danger)]
+              hover:bg-[var(--status-danger-bg)] transition-colors"
           >
-            <LogoutIcon size={24} />
+            <NavIcon name="logout" size={20} />
           </button>
         </div>
 
-        {/* User Avatar Bottom */}
-        <div className="hidden md:mt-auto md:border-t md:border-gray-800/50 md:pt-4 md:w-full md:flex md:justify-center">
-          {user && (
-            <div className="md:w-12 md:h-12 md:rounded-xl md:bg-gradient-to-br md:from-cyan-400 md:to-blue-500 md:flex md:items-center md:justify-center md:font-bold md:text-white md:text-sm md:cursor-pointer md:hover:shadow-lg md:hover:shadow-cyan-500/40 md:transition-all md:duration-300" title={`${user.name} (${user.role})`}>
+        {/* User avatar */}
+        {user && (
+          <div className="px-2 pb-4 flex justify-center">
+            <div
+              title={`${user.name} (${user.role})`}
+              className="w-9 h-9 rounded-[var(--radius-card)] flex items-center justify-center
+                bg-[var(--brand-muted)] border border-[var(--brand)] text-[var(--brand)]
+                font-bold text-sm cursor-default select-none"
+            >
               {user.name.charAt(0).toUpperCase()}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
 
-      {/* Top Header Bar (Desktop) */}
-      <header className="hidden md:fixed md:top-0 md:left-20 md:right-0 md:h-16 md:bg-gradient-to-r md:from-white md:via-blue-50/30 md:to-cyan-50/30 md:dark:from-gray-800 md:dark:via-gray-800/50 md:dark:to-gray-800/30 md:border-b md:border-gray-200/50 md:dark:border-gray-700/50 md:flex md:items-center md:justify-between md:px-6 md:z-40 md:backdrop-blur-sm md:shadow-sm md:shadow-black/5">
-        <div className="md:flex md:items-center md:gap-4">
-          <h1 className="md:text-xl md:font-bold text-gray-900 dark:text-gray-100">Toko Besi Serta Guna</h1>
-        </div>
+      {/* ── Desktop Topbar ────────────────────────────────────────────── */}
+      <header className="hidden md:flex fixed top-0 left-20 right-0 h-16 z-50
+        bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]
+        items-center justify-between px-6">
 
-        <div className="md:flex md:items-center md:gap-6">
+        {/* Brand name */}
+        <h1 className="text-base font-bold text-[var(--text-main)] tracking-tight">
+          Toko Besi Serta Guna
+        </h1>
+
+        {/* Right side */}
+        <div className="flex items-center gap-4">
           <NotificationBell />
+
           {user && (
-            <div className="md:text-right md:hidden lg:block md:border-l md:border-gray-200/50 md:dark:border-gray-700/50 md:pl-4">
-              <div className="md:font-semibold md:text-gray-900 md:dark:text-white md:text-sm">{user.name}</div>
-              <div className="md:text-xs md:text-gray-500 md:dark:text-gray-400 md:capitalize md:font-medium">{user.role}</div>
+            <div className="pl-4 border-l border-[var(--border-subtle)] text-right">
+              <p className="text-sm font-semibold text-[var(--text-main)] leading-tight">
+                {user.name}
+              </p>
+              <p className="text-xs text-[var(--text-muted)] capitalize leading-tight mt-0.5">
+                {user.role}
+              </p>
             </div>
           )}
         </div>
       </header>
-
-      {/* Overlay when mobile sidebar is open */}
-      {sidebarOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-30 top-16"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </>
   );
 }
 
-// ─── Desktop Nav Item (NavLink-based) ────────────────────────────────────
+// ─── Desktop Nav Item ─────────────────────────────────────────────────────
 
-function DesktopNavItem({ to, icon, title, badge }) {
-  return (
-    <NavLink 
-      to={to}
-      className={({ isActive }) => `relative group w-12 h-12 rounded-lg transition-all duration-200 flex items-center justify-center ${
-        isActive 
-          ? 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-cyan-400 shadow-lg shadow-cyan-500/20' 
-          : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
-      }`}
-      title={title}
-    >
-      {icon}
-      {badge > 0 && (
-        <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg">
-          {badge}
-        </span>
-      )}
-    </NavLink>
-  );
-}
-
-// ─── Mobile Nav Item (NavLink-based) ─────────────────────────────────────
-
-function MobileNavItem({ to, icon, label, badge }) {
+function DesktopNavItem({ to, icon, title, badge = 0 }) {
   return (
     <NavLink
       to={to}
-      className={({ isActive }) => `w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-sm ${
-        isActive 
-          ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-md shadow-cyan-500/10' 
-          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-      }`}
+      title={title}
+      className={({ isActive }) =>
+        `relative w-full h-10 flex items-center justify-center
+         rounded-[var(--radius-default)] transition-colors
+         ${isActive
+           ? 'bg-[var(--brand-muted)] text-[var(--brand)] border-l-[3px] border-[var(--brand)]'
+           : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
+         }`
+      }
     >
-      <span className="flex-shrink-0 w-5 h-5">{icon}</span>
-      <span className="flex-1">{label}</span>
+      {icon}
       {badge > 0 && (
-        <span className="bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs rounded-full px-2 py-1 font-bold shadow-md">
-          {badge}
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1
+          flex items-center justify-center rounded-full
+          bg-[var(--status-danger)] text-white text-[10px] font-bold leading-none">
+          {badge > 9 ? '9+' : badge}
         </span>
       )}
     </NavLink>
   );
 }
 
-// ─── Icon Components ─────────────────────────────────────────────────────
+// ─── Mobile Nav Item ──────────────────────────────────────────────────────
 
-function DashboardIcon({ size = 24 }) {
+function MobileNavItem({ to, icon, label, badge = 0 }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>
-    </svg>
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-default)]
+         text-sm font-medium transition-colors
+         ${isActive
+           ? 'bg-[var(--brand-muted)] text-[var(--brand)] border-l-[3px] border-[var(--brand)]'
+           : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
+         }`
+      }
+    >
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {badge > 0 && (
+        <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center
+          rounded-[var(--radius-sm)] bg-[var(--status-danger)] text-white
+          text-[10px] font-bold leading-none">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </NavLink>
   );
 }
 
-function PlusIcon({ size = 24 }) {
+// ─── Icon Router ──────────────────────────────────────────────────────────
+
+function NavIcon({ name, size = 20 }) {
+  const props = {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: '2',
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  };
+
+  switch (name) {
+    case 'dashboard':
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+        </svg>
+      );
+    case 'plus':
+      return <svg {...props}><path d="M12 5v14M5 12h14" /></svg>;
+    case 'package':
+      return (
+        <svg {...props}>
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
+        </svg>
+      );
+    case 'file':
+      return (
+        <svg {...props}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+      );
+    case 'users':
+      return (
+        <svg {...props}>
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case 'inbox':
+      return (
+        <svg {...props}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      );
+    case 'settings':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      );
+    case 'logout':
+      return (
+        <svg {...props}>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+      );
+    case 'menu':
+      return (
+        <svg {...props}>
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function MenuIcon({ size = 24 }) { return <NavIcon name="menu" size={size} />; }
+function XIcon({ size = 24 }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 5v14M5 12h14"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
-
-function DollarIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-    </svg>
-  );
-}
-
-function FileIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
-    </svg>
-  );
-}
-
-function UsersIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-    </svg>
-  );
-}
-
-function InboxIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-    </svg>
-  );
-}
-
-function SettingsIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-    </svg>
-  );
-}
-
 function MoonIcon({ size = 24 }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
-
 function SunIcon({ size = 24 }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-    </svg>
-  );
-}
-
-function LogoutIcon({ size = 24 }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
     </svg>
   );
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PriceList;
 use App\Models\Transaction;
 use App\Http\Requests\UpdatePriceListRequest;
+use App\Http\Requests\StorePriceListRequest;
 use App\Http\Resources\PriceListResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +15,10 @@ class PriceListController extends Controller
 {
     public function index()
     {
-        $items = PriceList::all();
+        // PriceList is typically small (hundreds of items for a hardware store)
+        $items = PriceList::orderBy('category')->orderBy('product_name')->get();
 
-        // Aggregate sales/purchases counts efficiently via DB
+        // Two aggregate queries — one per type — compatible with MySQL and SQLite
         $sales = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
             ->where('type', 'penjualan')
             ->groupBy('price_list_id')
@@ -28,8 +30,8 @@ class PriceListController extends Controller
             ->pluck('total_qty', 'price_list_id');
 
         $items->transform(function ($item) use ($sales, $purchases) {
-            $item->qty_sales = $sales[$item->id] ?? 0;
-            $item->qty_purchases = $purchases[$item->id] ?? 0;
+            $item->qty_sales     = (int) ($sales[$item->id]     ?? 0);
+            $item->qty_purchases = (int) ($purchases[$item->id] ?? 0);
             return $item;
         });
 
@@ -61,16 +63,9 @@ class PriceListController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StorePriceListRequest $request)
     {
-        $request->validate([
-            'product_name' => 'required|string|max:255',
-            'category'     => 'required|string|max:100',
-            'price'        => 'required|numeric|min:0',
-            'stock'        => 'required|integer|min:0',
-            'unit'         => 'nullable|string|max:50',
-        ]);
-
+        // FIX A5: Validasi sudah di StorePriceListRequest, konsisten dengan controller lain
         $item = PriceList::create([
             'product_id'   => strtoupper(Str::random(8)),
             'product_name' => $request->product_name,
@@ -109,6 +104,11 @@ class PriceListController extends Controller
 
     public function sale(Request $request, $id)
     {
+        // FIX E2: Validasi quantity sebelum proses
+        $request->validate([
+            'quantity' => 'nullable|integer|min:1|max:9999',
+        ]);
+
         try {
             $item = null;
             DB::transaction(function () use ($request, $id, &$item) {
@@ -153,6 +153,11 @@ class PriceListController extends Controller
 
     public function restock(Request $request, $id)
     {
+        // FIX E3: Validasi quantity sebelum proses
+        $request->validate([
+            'quantity' => 'nullable|integer|min:1|max:9999',
+        ]);
+
         try {
             $item = null;
             DB::transaction(function () use ($request, $id, &$item) {

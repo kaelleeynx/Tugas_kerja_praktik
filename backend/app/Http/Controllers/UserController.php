@@ -60,6 +60,15 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
+        // FIX S1: Hanya owner atau user itu sendiri yang boleh update profil
+        $authUser = $request->user();
+        if ($authUser->role !== 'owner' && $authUser->id != $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengubah profil pengguna lain.',
+            ], 403);
+        }
+
         $data = ['name' => $request->name];
 
         if ($request->password) {

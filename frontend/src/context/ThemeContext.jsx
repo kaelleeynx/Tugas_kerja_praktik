@@ -15,32 +15,50 @@ export const ThemeProvider = ({ children }) => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
       if (saved) return saved;
-      // Detect system preference
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return 'light';
   });
 
+  // Apply theme class to <html> and persist
   useEffect(() => {
-    const root = window.document.documentElement;
-    // Remove both classes first
+    const root = document.documentElement;
     root.classList.remove('light', 'dark');
-    // Add the current theme class
     root.classList.add(theme);
-    // Also set data attribute for reference
     root.setAttribute('data-theme', theme);
-    // Save to localStorage
     localStorage.setItem('theme', theme);
-    
-
   }, [theme]);
 
+  // Listen for OS-level dark/light mode changes
+  // Only applies if user hasn't manually set a preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleSystemChange = (e) => {
+      // Only follow system if no manual preference saved
+      const saved = localStorage.getItem('theme');
+      if (!saved) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
+  }, []);
+
   const toggleTheme = () => {
-    setTheme((prev) => prev === 'light' ? 'dark' : 'light');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Allow resetting to system preference
+  const resetToSystem = () => {
+    localStorage.removeItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(prefersDark ? 'dark' : 'light');
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, resetToSystem }}>
       {children}
     </ThemeContext.Provider>
   );

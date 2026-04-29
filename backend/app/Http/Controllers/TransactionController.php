@@ -9,10 +9,18 @@ use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+
+use App\Services\TransactionService;
 
 class TransactionController extends Controller
 {
+    // Q1: Dependency injection via constructor — tidak perlu new() di setiap method
+    public function __construct(
+        private readonly TransactionService $transactionService
+    ) {}
+
     public function index(Request $request)
     {
         $perPage = min((int) ($request->per_page ?? 50), 200);
@@ -42,6 +50,11 @@ class TransactionController extends Controller
             $transaction = DB::transaction(function () use ($request) {
                 // Lock the row for update to prevent race conditions
                 $item = PriceList::where('id', $request->price_list_id)->lockForUpdate()->first();
+
+                // FIX E1: Handle item not found gracefully
+                if (!$item) {
+                    throw new \Exception('Produk tidak ditemukan.');
+                }
 
                 // Check stock availability for sales
                 if ($request->type === 'penjualan') {
@@ -76,6 +89,12 @@ class TransactionController extends Controller
             ], 201);
             
         } catch (\Exception $e) {
+            // FIX L3: Log error ke server
+            Log::error('Transaction store failed', [
+                'user_id' => $request->user()->id,
+                'error'   => $e->getMessage(),
+                'data'    => $request->only(['type', 'price_list_id', 'quantity', 'date']),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -183,8 +202,7 @@ class TransactionController extends Controller
 
     public function getStatistics(Request $request)
     {
-        $service = new \App\Services\TransactionService();
-        $stats = $service->getStatistics($request->from, $request->to);
+        $stats = $this->transactionService->getStatistics($request->from, $request->to);
 
         return response()->json([
             'success' => true,
@@ -194,8 +212,7 @@ class TransactionController extends Controller
 
     public function getDailyStatistics(Request $request)
     {
-        $service = new \App\Services\TransactionService();
-        $stats = $service->getDailyStatistics($request->date);
+        $stats = $this->transactionService->getDailyStatistics($request->date);
 
         return response()->json([
             'success' => true,
@@ -205,39 +222,33 @@ class TransactionController extends Controller
 
     public function dashboardSummary()
     {
-        $service = new \App\Services\TransactionService();
-
-        // Current month stats
-        $currentMonth = $service->getStatistics(
+        $currentMonth = $this->transactionService->getStatistics(
             now()->startOfMonth()->toDateString(),
             now()->endOfMonth()->toDateString()
         );
 
-        // Previous month stats for comparison
-        $prevMonth = $service->getStatistics(
+        $prevMonth = $this->transactionService->getStatistics(
             now()->subMonth()->startOfMonth()->toDateString(),
             now()->subMonth()->endOfMonth()->toDateString()
         );
 
-        // Today's stats
-        $today = $service->getDailyStatistics(now());
+        $today = $this->transactionService->getDailyStatistics(now());
 
         return response()->json([
             'success' => true,
             'data' => [
-                'current_month' => $currentMonth,
+                'current_month'  => $currentMonth,
                 'previous_month' => $prevMonth,
-                'today' => $today,
+                'today'          => $today,
                 'total_products' => \App\Models\PriceList::count(),
-                'total_users' => \App\Models\User::where('role', '!=', 'owner')->count(),
+                'total_users'    => \App\Models\User::where('role', '!=', 'owner')->count(),
             ]
         ]);
     }
 
     public function monthlyReport(Request $request)
     {
-        $service = new \App\Services\TransactionService();
-        $report = $service->getMonthlyReport($request->month, $request->year);
+        $report = $this->transactionService->getMonthlyReport($request->month, $request->year);
 
         return response()->json([
             'success' => true,
@@ -247,16 +258,29 @@ class TransactionController extends Controller
 
     public function export(Request $request)
     {
+        // FIX D2: Tambah limit dan validasi date range untuk mencegah OOM
+        $request->validate([
+            'from' => 'nullable|date',
+            'to'   => 'nullable|date|after_or_equal:from',
+        ]);
+
         $transactions = Transaction::with(['user', 'priceList'])
             ->when($request->from && $request->to, function ($query) use ($request) {
                 return $query->whereBetween('date', [$request->from, $request->to]);
             })
             ->orderBy('date', 'desc')
+            ->limit(10000) // Safety limit — max 10k rows per export
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => TransactionResource::collection($transactions)
+            'data' => TransactionResource::collection($transactions),
+            'meta' => [
+                'total' => $transactions->count(),
+                'note'  => $transactions->count() >= 10000
+                    ? 'Data dibatasi 10.000 baris. Gunakan filter tanggal untuk export lebih spesifik.'
+                    : null,
+            ],
         ]);
     }
 }

@@ -78,7 +78,8 @@ describe('api.js — Transactions', () => {
       const transactions = [{ id: 1 }, { id: 2 }];
       apiClient.get.mockResolvedValue({ data: transactions });
       const result = await getTransactions();
-      expect(apiClient.get).toHaveBeenCalledWith('/transactions');
+      // FIX: getTransactions now accepts params object, passes as { params }
+      expect(apiClient.get).toHaveBeenCalledWith('/transactions', { params: {} });
       expect(result).toEqual(transactions);
     });
 

@@ -14,6 +14,7 @@ class PriceListResource extends JsonResource
             'product_id'    => $this->product_id,
             'product_name'  => $this->product_name,
             'category'      => $this->category,
+            'unit'          => $this->unit,
             'price'         => $this->price,
             'stock'         => $this->stock,
             'qty_sales'     => $this->qty_sales ?? 0,

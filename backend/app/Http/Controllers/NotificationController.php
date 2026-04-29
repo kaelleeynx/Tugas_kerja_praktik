@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -81,35 +80,5 @@ class NotificationController extends Controller
             'success' => true,
             'message' => 'Notification deleted'
         ]);
-    }
-
-    // Helper method to create notification
-    public static function createNotification($userId, $type, $title, $message, $data = null, $actionUrl = null)
-    {
-        return Notification::create([
-            'user_id' => $userId,
-            'type' => $type,
-            'title' => $title,
-            'message' => $message,
-            'data' => $data,
-            'action_url' => $actionUrl
-        ]);
-    }
-
-    // Notify all owners about new admin approval request
-    public static function notifyOwnersAboutApprovalRequest($adminUser)
-    {
-        $owners = User::where('role', 'owner')->get();
-        
-        foreach ($owners as $owner) {
-            self::createNotification(
-                $owner->id,
-                'approval',
-                'Permintaan Persetujuan Admin Baru',
-                "Pengguna {$adminUser->name} ({$adminUser->username}) meminta persetujuan sebagai admin.",
-                ['user_id' => $adminUser->id],
-                "/approvals"
-            );
-        }
     }
 }

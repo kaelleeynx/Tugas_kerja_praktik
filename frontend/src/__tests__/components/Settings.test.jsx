@@ -5,7 +5,10 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('animejs', () => ({ animate: vi.fn() }));
-vi.mock('framer-motion', () => ({ motion: { div: ({ children, ...props }) => <div {...props}>{children}</div> } }));
+vi.mock('framer-motion', () => ({
+  motion: { div: ({ children, ...props }) => <div {...props}>{children}</div> },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
 vi.mock('../../services/api', () => ({
   updateMyProfile: vi.fn(),
   changeMyPassword: vi.fn(),

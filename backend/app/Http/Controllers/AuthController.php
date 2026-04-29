@@ -9,6 +9,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -21,6 +22,11 @@ class AuthController extends Controller
         $passwordValid = $user && Hash::check($request->password, $user->password);
 
         if (!$passwordValid) {
+            // FIX L1: Log failed login attempts
+            Log::warning('Failed login attempt', [
+                'username' => $request->username,
+                'ip'       => $request->ip(),
+            ]);
             throw ValidationException::withMessages([
                 'username' => ['Username atau password salah'],
             ]);
@@ -36,6 +42,14 @@ class AuthController extends Controller
         $user->update(['last_login_at' => now()]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // FIX L1: Log successful login
+        Log::info('User logged in', [
+            'user_id'  => $user->id,
+            'username' => $user->username,
+            'role'     => $user->role,
+            'ip'       => $request->ip(),
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -47,15 +61,30 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request)
     {
+        // FIX E4: Role sudah divalidasi di RegisterRequest (hanya 'admin' atau 'staff')
+        // Default ke 'staff' jika tidak disertakan
         $role = $request->role ?? 'staff';
+        // Extra safety: pastikan owner tidak bisa dibuat via API
+        if (!in_array($role, ['admin', 'staff'])) {
+            $role = 'staff';
+        }
         $isApproved = $role === 'staff';
 
         $user = User::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'name' => $request->name,
-            'role' => $role,
-            'is_approved' => $isApproved
+            'username'    => $request->username,
+            'password'    => Hash::make($request->password),
+            'name'        => $request->name,
+            'role'        => $role,
+            'is_approved' => $isApproved,
+        ]);
+
+        // FIX L1: Log registration
+        Log::info('New user registered', [
+            'user_id'     => $user->id,
+            'username'    => $user->username,
+            'role'        => $user->role,
+            'is_approved' => $user->is_approved,
+            'ip'          => $request->ip(),
         ]);
 
         // Notify owners about admin approval requests
@@ -63,12 +92,12 @@ class AuthController extends Controller
             $owners = User::where('role', 'owner')->get();
             foreach ($owners as $owner) {
                 Notification::create([
-                    'user_id' => $owner->id,
-                    'type' => 'approval',
-                    'title' => 'Permintaan Persetujuan Admin Baru',
-                    'message' => "Pengguna {$user->name} ({$user->username}) meminta persetujuan sebagai admin.",
-                    'data' => ['user_id' => $user->id],
-                    'action_url' => '/approvals'
+                    'user_id'    => $owner->id,
+                    'type'       => 'approval',
+                    'title'      => 'Permintaan Persetujuan Admin Baru',
+                    'message'    => "Pengguna {$user->name} ({$user->username}) meminta persetujuan sebagai admin.",
+                    'data'       => ['user_id' => $user->id],
+                    'action_url' => '/approvals',
                 ]);
             }
         }
@@ -84,11 +113,17 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // FIX L1: Log logout
+        Log::info('User logged out', [
+            'user_id'  => $request->user()->id,
+            'username' => $request->user()->username,
+        ]);
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Berhasil logout'
+            'message' => 'Berhasil logout',
         ]);
     }
 
@@ -96,7 +131,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => new UserResource($request->user()),
+            'data'    => new UserResource($request->user()),
         ]);
     }
 
@@ -122,7 +157,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diperbarui',
-            'data' => new UserResource($user->refresh()),
+            'data'    => new UserResource($user->refresh()),
         ]);
     }
 
@@ -130,7 +165,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'password'         => 'required|string|min:6|confirmed',
+            'password'         => 'required|string|min:8|confirmed', // FIX S6: min 8 karakter
         ]);
 
         $user = $request->user();
@@ -143,6 +178,12 @@ class AuthController extends Controller
         }
 
         $user->update(['password' => Hash::make($request->password)]);
+
+        // FIX L1: Log password change
+        Log::info('User changed password', [
+            'user_id'  => $user->id,
+            'username' => $user->username,
+        ]);
 
         return response()->json([
             'success' => true,

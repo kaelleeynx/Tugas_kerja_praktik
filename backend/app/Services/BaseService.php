@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Base Service Class
- * Provides common functionality for all services
+ * Provides common CRUD functionality for services.
+ *
+ * NOTE (Q3): Class ini saat ini belum digunakan oleh TransactionService
+ * karena TransactionService hanya butuh statistik/reporting, bukan CRUD generic.
+ * Tersedia untuk digunakan jika ada service baru yang butuh CRUD standar.
+ *
+ * Cara pakai:
+ *   class ProductService extends BaseService {
+ *       protected function getModel(): Model { return new Product(); }
+ *   }
  */
 abstract class BaseService
 {

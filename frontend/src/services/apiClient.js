@@ -20,10 +20,11 @@ const apiClient = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  // 15s timeout — enough for slow dev server, short enough to not block UI
+  timeout: 15000,
 });
 
-// --- Interceptors ---
+// ─── Interceptors ─────────────────────────────────────────────────────────
 
 // Attach Bearer token from localStorage on every request
 apiClient.interceptors.request.use(
@@ -44,7 +45,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle responses — unwrap data, handle 401 auto-logout
+// Handle responses — global error handling
 let logoutCallback = null;
 
 export const setLogoutCallback = (cb) => {
@@ -54,14 +55,30 @@ export const setLogoutCallback = (cb) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid — clear storage and redirect
+    const status = error.response?.status;
+
+    // 401 — Token expired or invalid → auto-logout
+    if (status === 401) {
       localStorage.removeItem('activeUser');
       localStorage.removeItem('token');
       if (logoutCallback) {
         logoutCallback();
       }
     }
+
+    // FIX F3: 403 — Forbidden, 429 — Rate limited, 500 — Server error
+    // Normalize error message agar komponen tidak perlu handle sendiri
+    if (status === 403) {
+      error.userMessage = 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
+    } else if (status === 429) {
+      error.userMessage = 'Terlalu banyak permintaan. Coba lagi beberapa saat.';
+    } else if (status >= 500) {
+      error.userMessage = 'Terjadi kesalahan server. Coba lagi nanti.';
+    } else if (!error.response) {
+      // Network error — no response at all
+      error.userMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+    }
+
     return Promise.reject(error);
   }
 );

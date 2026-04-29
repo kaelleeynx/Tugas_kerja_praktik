@@ -3,9 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#FF6F3C" />
     <meta name="description" content="Sistem Manajemen Toko Besi Serta Guna" />
     <title>Toko Besi Serta Guna</title>
+
+    <!--
+      Anti-FOUT (Flash of Unstyled Theme) script.
+      Runs synchronously BEFORE React mounts to apply the correct theme class
+      immediately — prevents white flash on dark mode users.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = saved || (prefersDark ? 'dark' : 'light');
+          document.documentElement.classList.add(theme);
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          // localStorage not available (private mode etc.) — default to light
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

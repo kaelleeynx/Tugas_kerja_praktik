@@ -70,14 +70,18 @@ class TransactionService
 
     /**
      * Get monthly report grouped by date and type.
+     * Uses whereBetween instead of whereMonth/whereYear to leverage the date index.
      */
     public function getMonthlyReport($month = null, $year = null)
     {
         $month = $month ?? Carbon::now()->month;
-        $year = $year ?? Carbon::now()->year;
+        $year  = $year  ?? Carbon::now()->year;
 
-        return Transaction::whereMonth('date', $month)
-            ->whereYear('date', $year)
+        // Build explicit date range so MySQL can use the idx_transactions_date_type index
+        $start = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
+        $end   = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+
+        return Transaction::whereBetween('date', [$start, $end])
             ->selectRaw('DATE(date) as report_date, type, SUM(total) as total_amount, COUNT(*) as count')
             ->groupByRaw('DATE(date), type')
             ->orderBy('report_date')

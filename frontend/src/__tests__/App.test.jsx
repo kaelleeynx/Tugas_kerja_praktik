@@ -20,6 +20,7 @@ import LoginForm from '../components/LoginForm';
 describe('LoginForm', () => {
   it('should render login form with username and password fields', () => {
     render(<LoginForm onLogin={vi.fn()} />, { wrapper: MemoryRouter });
-    expect(screen.getByLabelText(/username/i) || screen.getByPlaceholderText(/username/i)).toBeTruthy();
+    // Check by placeholder since labels don't use htmlFor in new design
+    expect(screen.getByPlaceholderText(/Masukkan username/i)).toBeTruthy();
   });
 });

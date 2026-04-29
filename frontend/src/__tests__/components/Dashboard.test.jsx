@@ -51,18 +51,25 @@ describe('Dashboard', () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query) => ({
-        matches: false, media: query, onchange: null,
-        addListener: vi.fn(), removeListener: vi.fn(),
-        addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
       })),
     });
   });
 
   describe('loading state', () => {
-    it('should show loading spinner while fetching', () => {
+    it('should show skeleton screen while fetching', () => {
       getTransactions.mockImplementation(() => new Promise(() => {}));
       renderDashboard();
-      expect(screen.getByText(/Loading dashboard/i)).toBeTruthy();
+      // Skeleton elements should be present during loading
+      const skeletons = document.querySelectorAll('.skeleton');
+      expect(skeletons.length).toBeGreaterThan(0);
     });
   });
 
