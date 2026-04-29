@@ -15,16 +15,24 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = min((int) ($request->per_page ?? 50), 200);
+
         $transactions = Transaction::with(['user', 'priceList'])
             ->when($request->from && $request->to, function ($query) use ($request) {
                 return $query->whereBetween('date', [$request->from, $request->to]);
             })
             ->orderBy('date', 'desc')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => TransactionResource::collection($transactions)
+            'data' => TransactionResource::collection($transactions),
+            'meta' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page'    => $transactions->lastPage(),
+                'per_page'     => $transactions->perPage(),
+                'total'        => $transactions->total(),
+            ],
         ]);
     }
 
@@ -91,6 +99,12 @@ class TransactionController extends Controller
             DB::transaction(function () use ($id) {
                 $transaction = Transaction::findOrFail($id);
 
+                // Only owner or the transaction creator can delete
+                $user = request()->user();
+                if ($user->role !== 'owner' && $transaction->user_id !== $user->id) {
+                    throw new \Exception('Anda tidak memiliki izin untuk menghapus transaksi ini.');
+                }
+
                 if ($transaction->price_list_id) {
                     $item = PriceList::where('id', $transaction->price_list_id)->lockForUpdate()->first();
                     if ($item) {
@@ -122,6 +136,13 @@ class TransactionController extends Controller
         try {
             $transaction = DB::transaction(function () use ($request, $id) {
                 $transaction = Transaction::findOrFail($id);
+
+                // Only owner or the transaction creator can update
+                $user = $request->user();
+                if ($user->role !== 'owner' && $transaction->user_id !== $user->id) {
+                    throw new \Exception('Anda tidak memiliki izin untuk mengubah transaksi ini.');
+                }
+
                 $oldQty = $transaction->quantity;
                 $diff = $request->quantity - $oldQty;
 

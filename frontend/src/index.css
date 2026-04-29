@@ -223,3 +223,16 @@
     ring-offset: 2px;
   }
 }
+
+/* ─── Navbar Layout — moved from Navbar.jsx inline style ─────────────────── */
+@media (min-width: 768px) {
+  body {
+    padding-left: 80px;
+    padding-top: 64px;
+  }
+}
+@media (max-width: 767px) {
+  body {
+    padding-top: 64px;
+  }
+}

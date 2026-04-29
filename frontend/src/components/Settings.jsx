@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { updateUser } from '../services/api';
+import { updateMyProfile, changeMyPassword } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { animate } from 'animejs';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 const Settings = () => {
   const { user, updateUser: authUpdateUser } = useAuth();
   const [name, setName] = useState(user.name);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
@@ -67,17 +68,29 @@ const Settings = () => {
       return;
     }
 
+    if (password && !currentPassword) {
+      setError('Masukkan password lama untuk mengubah password');
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Update profile (name + photo) via /auth/me
       const formData = new FormData();
       formData.append('name', name);
-      if (password) formData.append('password', password);
       if (profilePicture) formData.append('profile_picture', profilePicture);
 
-      const updatedUser = await updateUser(user.id, formData);
-      
+      const updatedUser = await updateMyProfile(formData);
       authUpdateUser({ ...user, ...updatedUser.data });
+
+      // Change password separately via /auth/me/password
+      if (password) {
+        await changeMyPassword(currentPassword, password);
+      }
+
       setMessage('Profil berhasil diperbarui');
       setPassword('');
+      setCurrentPassword('');
       setConfirmPassword('');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Gagal memperbarui profil');
@@ -222,6 +235,17 @@ const Settings = () => {
 
                 <div className="space-y-6">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password Lama</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Masukkan password saat ini"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 bg-white placeholder:text-gray-600 dark:placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password Baru</label>
                     <input
                       type="password"
@@ -288,6 +312,7 @@ const Settings = () => {
                   type="reset"
                   onClick={() => {
                     setName(user.name);
+                    setCurrentPassword('');
                     setPassword('');
                     setConfirmPassword('');
                     setMessage('');

@@ -11,8 +11,9 @@ const getBackendUrl = () => {
     return 'http://localhost:8000';
   }
   
-  // Production fallback
-  return 'https://api.yourdomain.com';
+  // Production: VITE_BACKEND_URL must be set
+  console.error('[config] VITE_BACKEND_URL is not set. API calls will fail in production.');
+  return '';
 };
 
 const config = {
@@ -20,7 +21,7 @@ const config = {
   apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
   enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
   enableErrorReporting: import.meta.env.VITE_ENABLE_ERROR_REPORTING === 'true',
-  appName: import.meta.env.VITE_APP_NAME || 'Frozen Food Oppa',
+  appName: import.meta.env.VITE_APP_NAME || 'Toko Besi Serta Guna',
   env: import.meta.env.MODE || 'development',
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,

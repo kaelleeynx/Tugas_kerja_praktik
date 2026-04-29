@@ -17,7 +17,10 @@ class AuthController extends Controller
     {
         $user = User::where('username', $request->username)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        // Always run Hash::check to prevent timing attacks
+        $passwordValid = $user && Hash::check($request->password, $user->password);
+
+        if (!$passwordValid) {
             throw ValidationException::withMessages([
                 'username' => ['Username atau password salah'],
             ]);

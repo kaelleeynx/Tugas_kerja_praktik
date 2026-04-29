@@ -3,11 +3,6 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  define: {
-    'process.env': {},
-    'process.env.NODE_ENV': JSON.stringify('development'),
-    global: 'globalThis',
-  },
   plugins: [
     react({
       jsxRuntime: 'automatic',
@@ -43,6 +38,12 @@ export default defineConfig({
           }
           if (id.includes('node_modules/@radix-ui')) {
             return 'ui';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'charts';
+          }
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/animejs')) {
+            return 'animation';
           }
         },
       },

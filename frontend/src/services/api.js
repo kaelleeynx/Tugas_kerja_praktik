@@ -25,6 +25,24 @@ export const logout = async () => {
   return data;
 };
 
+export const updateMyProfile = async (formData) => {
+  // Uses POST with _method: PUT for multipart/form-data support
+  formData.append('_method', 'PUT');
+  const { data } = await apiClient.post('/auth/me', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+
+export const changeMyPassword = async (currentPassword, newPassword) => {
+  const { data } = await apiClient.post('/auth/me/password', {
+    current_password: currentPassword,
+    password: newPassword,
+    password_confirmation: newPassword,
+  });
+  return data;
+};
+
 // ─── Users ───────────────────────────────────────────────────────────────
 
 export const getUsers = async () => {

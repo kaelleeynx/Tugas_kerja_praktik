@@ -16,7 +16,7 @@ Sistem manajemen full-stack untuk Toko Besi Serta Guna. Pencatatan transaksi, ma
 
 ### Backend
 
-- **Laravel 10**: PHP framework
+- **Laravel 12**: PHP framework
 - **PostgreSQL**: Relational database (Railway)
 - **Laravel Sanctum**: Token-based SPA authentication
 - **API Resources**: Standardized JSON responses

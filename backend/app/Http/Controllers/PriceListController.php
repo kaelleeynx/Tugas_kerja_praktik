@@ -68,6 +68,7 @@ class PriceListController extends Controller
             'category'     => 'required|string|max:100',
             'price'        => 'required|numeric|min:0',
             'stock'        => 'required|integer|min:0',
+            'unit'         => 'nullable|string|max:50',
         ]);
 
         $item = PriceList::create([
@@ -76,6 +77,7 @@ class PriceListController extends Controller
             'category'     => $request->category,
             'price'        => $request->price,
             'stock'        => $request->stock,
+            'unit'         => $request->unit,
         ]);
 
         return response()->json([

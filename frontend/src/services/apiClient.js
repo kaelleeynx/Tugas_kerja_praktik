@@ -9,8 +9,9 @@ const getBaseUrl = () => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:8000/api';
   }
-  // TODO: Update to KP production URL when deployed
-  return 'http://localhost:8000/api';
+  // Production: VITE_BACKEND_URL must be set via environment variable
+  console.error('[apiClient] VITE_BACKEND_URL is not set. API calls will fail.');
+  return '/api';
 };
 
 const apiClient = axios.create({

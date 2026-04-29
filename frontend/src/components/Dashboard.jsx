@@ -3,6 +3,7 @@ import { getTransactions, deleteTransaction, updateTransaction } from '../servic
 import { useAuth } from '../context/AuthContext';
 import { animate, stagger } from 'animejs';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 function formatIDR(n) {
@@ -17,7 +18,9 @@ export default function Dashboard() {
   const dashboardRef = useRef(null);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -32,26 +35,36 @@ export default function Dashboard() {
     }
   }, [loading]);
 
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
       const response = await getTransactions();
+      if (signal?.aborted) return;
       // Response is already an array after API fix
       setTransactions(Array.isArray(response) ? response : (response.data || []));
       setLoading(false);
     } catch (error) {
+      if (error.name === 'AbortError' || error.name === 'CanceledError') return;
       console.error('Failed to fetch transactions', error);
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus transaksi ini?')) return;
-    try {
-      await deleteTransaction(id);
-      fetchData(); // Refresh data
-    } catch (error) {
-      alert('Gagal menghapus transaksi: ' + error.message);
-    }
+    toast('Hapus transaksi ini?', {
+      action: {
+        label: 'Hapus',
+        onClick: async () => {
+          try {
+            await deleteTransaction(id);
+            fetchData();
+            toast.success('Transaksi berhasil dihapus');
+          } catch (error) {
+            toast.error('Gagal menghapus: ' + (error.response?.data?.message || error.message));
+          }
+        },
+      },
+      cancel: { label: 'Batal' },
+    });
   };
 
   const handleUpdateQuantity = async (id, currentQty, change) => {
@@ -62,7 +75,7 @@ export default function Dashboard() {
       await updateTransaction(id, { quantity: newQty });
       fetchData();
     } catch (error) {
-      alert('Gagal update quantity: ' + error.message);
+      toast.error('Gagal update quantity: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -314,7 +327,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {filteredTransactions.slice(0,5).map(t => (
-                  <tr className="group">
+                  <tr key={t.id} className="group">
                       <td className="py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{new Date(t.date).toLocaleDateString('id-ID')}</td>
                       <td className="py-2 sm:py-3 px-2 sm:px-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -323,12 +336,13 @@ export default function Dashboard() {
                           {t.type}
                         </span>
                       </td>
-                      <td className="py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{t.product}</td>
+                      <td className="py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">{t.price_list?.product_name || t.note || '-'}</td>
                       <td className="py-2 sm:py-3 px-2 sm:px-3 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                         <div className="flex items-center gap-2">
                           {user?.role === 'owner' && (
                             <button 
                               onClick={() => handleUpdateQuantity(t.id, t.quantity, -1)}
+                              aria-label={`Kurangi quantity ${t.price_list?.product_name || ''}`}
                               className="w-5 h-5 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded text-gray-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               -
@@ -338,6 +352,7 @@ export default function Dashboard() {
                           {user?.role === 'owner' && (
                             <button 
                               onClick={() => handleUpdateQuantity(t.id, t.quantity, 1)}
+                              aria-label={`Tambah quantity ${t.price_list?.product_name || ''}`}
                               className="w-5 h-5 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded text-gray-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               +
@@ -351,6 +366,7 @@ export default function Dashboard() {
                           <button 
                             onClick={() => handleDelete(t.id)}
                             className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                            aria-label={`Hapus transaksi ${t.price_list?.product_name || t.id}`}
                             title="Hapus Transaksi"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

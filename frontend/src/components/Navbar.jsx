@@ -171,21 +171,6 @@ export default function Navbar({ onLogout }) {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-
-      {/* Add padding to push content */}
-      <style>{`
-        @media (min-width: 768px) {
-          body {
-            padding-left: 80px;
-            padding-top: 64px;
-          }
-        }
-        @media (max-width: 767px) {
-          body {
-            padding-top: 64px;
-          }
-        }
-      `}</style>
     </>
   );
 }

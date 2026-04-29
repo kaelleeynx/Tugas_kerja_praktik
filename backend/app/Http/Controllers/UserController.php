@@ -13,12 +13,18 @@ class UserController extends Controller
 {
     public function index()
     {
-        // Return all users except owner
-        $users = User::where('role', '!=', 'owner')->get();
+        // Return all users except owner with pagination
+        $users = User::where('role', '!=', 'owner')->paginate(50);
 
         return response()->json([
             'success' => true,
-            'data' => UserResource::collection($users)
+            'data' => UserResource::collection($users),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'per_page'     => $users->perPage(),
+                'total'        => $users->total(),
+            ],
         ]);
     }
 

@@ -31,15 +31,20 @@ class TransactionService
             $query->where('date', '<=', $endDate);
         }
 
-        $totalSales = (clone $query)->where('type', 'penjualan')->sum('total');
-        $totalExpenses = (clone $query)->where('type', 'pengeluaran')->sum('total');
-        $transactionCount = (clone $query)->count();
+        $result = $query->selectRaw("
+            SUM(CASE WHEN type = 'penjualan' THEN total ELSE 0 END) as total_sales,
+            SUM(CASE WHEN type = 'pengeluaran' THEN total ELSE 0 END) as total_expenses,
+            COUNT(*) as transaction_count
+        ")->first();
+
+        $totalSales    = (float) ($result->total_sales ?? 0);
+        $totalExpenses = (float) ($result->total_expenses ?? 0);
 
         return [
-            'total_sales' => $totalSales,
-            'total_expenses' => $totalExpenses,
-            'net_profit' => $totalSales - $totalExpenses,
-            'transaction_count' => $transactionCount,
+            'total_sales'       => $totalSales,
+            'total_expenses'    => $totalExpenses,
+            'net_profit'        => $totalSales - $totalExpenses,
+            'transaction_count' => (int) ($result->transaction_count ?? 0),
         ];
     }
 
