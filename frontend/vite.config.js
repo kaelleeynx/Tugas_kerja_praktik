@@ -15,6 +15,31 @@ export default defineConfig({
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    css: false,
+    // Only run tests from __tests__ folder (canonical location)
+    include: ['src/__tests__/**/*.test.{js,jsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: [
+        'src/main.jsx',
+        'src/index.jsx',
+        'src/**/*.test.{js,jsx}',
+        'src/**/__tests__/**',
+      ],
+      thresholds: {
+        lines: 80,
+        branches: 75,
+        functions: 80,
+        statements: 80,
+      },
+    },
+  },
   server: {
     port: 3000,
     host: '127.0.0.1',

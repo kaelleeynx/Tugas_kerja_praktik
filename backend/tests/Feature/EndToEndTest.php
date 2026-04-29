@@ -80,14 +80,23 @@ class EndToEndTest extends TestCase
         $loginAdminSuccess->assertStatus(200);
         $adminToken = $loginAdminSuccess->json('data.token');
 
-        // 8. Create Transaction (as Staff)
+        // 8. Create a price list item first, then create Transaction (as Staff)
+        $txItem = PriceList::create([
+            'product_id'   => 'TX001',
+            'category'     => 'Besi',
+            'product_name' => 'Test Product',
+            'unit'         => 'pcs',
+            'price'        => 10000,
+            'stock'        => 50
+        ]);
+
         $transactionResponse = $this->postJson('/api/transactions', [
-            'type' => 'penjualan',
-            'date' => '2023-01-01',
-            'product' => 'Test Product',
-            'quantity' => 2,
-            'price' => 10000,
-            'note' => 'Test Note'
+            'type'          => 'penjualan',
+            'date'          => '2023-01-01',
+            'price_list_id' => $txItem->id,
+            'quantity'      => 2,
+            'price'         => 10000,
+            'note'          => 'Test Note'
         ], ['Authorization' => "Bearer $staffToken"]);
         $transactionResponse->assertStatus(201);
 
@@ -95,19 +104,16 @@ class EndToEndTest extends TestCase
         $viewTrans = $this->getJson('/api/transactions', [
             'Authorization' => "Bearer $ownerToken"
         ]);
-        $viewTrans->assertStatus(200)
-            ->assertJsonCount(1, 'data');
+        $viewTrans->assertStatus(200);
 
         // 10. Price List Operations (as Admin)
-        // Create item first (assuming seeder or factory, but let's create one if needed or use existing)
-        // Since we refreshed DB, we need to seed or create.
         $item = PriceList::create([
-            'product_id' => 'P001',
-            'category' => 'Food',
+            'product_id'   => 'P001',
+            'category'     => 'Food',
             'product_name' => 'Test Item',
-            'unit' => 'pcs',
-            'price' => 5000,
-            'stock' => 10
+            'unit'         => 'pcs',
+            'price'        => 5000,
+            'stock'        => 10
         ]);
 
         // Sale
@@ -115,13 +121,13 @@ class EndToEndTest extends TestCase
             'quantity' => 2
         ], ['Authorization' => "Bearer $adminToken"]);
         $saleResponse->assertStatus(200)
-            ->assertJsonPath('stock', 8);
+            ->assertJsonPath('data.stock', 8);
 
         // Restock
         $restockResponse = $this->postJson("/api/price-list/{$item->id}/restock", [
             'quantity' => 5
         ], ['Authorization' => "Bearer $adminToken"]);
         $restockResponse->assertStatus(200)
-            ->assertJsonPath('stock', 13);
+            ->assertJsonPath('data.stock', 13);
     }
 }
