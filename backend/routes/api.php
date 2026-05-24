@@ -26,6 +26,12 @@ Route::middleware(['throttle:10,1'])->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
 });
 
+// TEMPORARY ROUTE TO SEED DATABASE
+Route::get('/seed-db', function () {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+    return 'Database seeded successfully! Silakan kembali ke Vercel dan coba login.';
+});
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth Endpoints
