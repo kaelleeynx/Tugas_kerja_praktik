@@ -10,6 +10,7 @@ use App\Http\Resources\TransactionResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 use App\Services\TransactionService;
@@ -82,6 +83,9 @@ class TransactionController extends Controller
                 ]);
             });
 
+            Cache::forget('dashboard_summary');
+            Cache::forget('pricelist_aggregates');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil disimpan',
@@ -138,6 +142,9 @@ class TransactionController extends Controller
                 $transaction->delete();
             });
 
+            Cache::forget('dashboard_summary');
+            Cache::forget('pricelist_aggregates');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil dihapus'
@@ -186,6 +193,9 @@ class TransactionController extends Controller
                 return $transaction;
             });
 
+            Cache::forget('dashboard_summary');
+            Cache::forget('pricelist_aggregates');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil diperbarui',
@@ -222,27 +232,31 @@ class TransactionController extends Controller
 
     public function dashboardSummary()
     {
-        $currentMonth = $this->transactionService->getStatistics(
-            now()->startOfMonth()->toDateString(),
-            now()->endOfMonth()->toDateString()
-        );
+        $data = Cache::remember('dashboard_summary', 300, function () {
+            $currentMonth = $this->transactionService->getStatistics(
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString()
+            );
 
-        $prevMonth = $this->transactionService->getStatistics(
-            now()->subMonth()->startOfMonth()->toDateString(),
-            now()->subMonth()->endOfMonth()->toDateString()
-        );
+            $prevMonth = $this->transactionService->getStatistics(
+                now()->subMonth()->startOfMonth()->toDateString(),
+                now()->subMonth()->endOfMonth()->toDateString()
+            );
 
-        $today = $this->transactionService->getDailyStatistics(now());
+            $today = $this->transactionService->getDailyStatistics(now());
 
-        return response()->json([
-            'success' => true,
-            'data' => [
+            return [
                 'current_month'  => $currentMonth,
                 'previous_month' => $prevMonth,
                 'today'          => $today,
                 'total_products' => \App\Models\PriceList::count(),
                 'total_users'    => \App\Models\User::where('role', '!=', 'owner')->count(),
-            ]
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ]);
     }
 

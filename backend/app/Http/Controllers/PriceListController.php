@@ -9,6 +9,7 @@ use App\Http\Requests\StorePriceListRequest;
 use App\Http\Resources\PriceListResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PriceListController extends Controller
@@ -18,16 +19,23 @@ class PriceListController extends Controller
         // PriceList is typically small (hundreds of items for a hardware store)
         $items = PriceList::orderBy('category')->orderBy('product_name')->get();
 
-        // Two aggregate queries — one per type — compatible with MySQL and SQLite
-        $sales = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
-            ->where('type', 'penjualan')
-            ->groupBy('price_list_id')
-            ->pluck('total_qty', 'price_list_id');
+        // Cache the heavy aggregates for 10 minutes (600 seconds)
+        $aggregates = Cache::remember('pricelist_aggregates', 600, function () {
+            $sales = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
+                ->where('type', 'penjualan')
+                ->groupBy('price_list_id')
+                ->pluck('total_qty', 'price_list_id');
 
-        $purchases = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
-            ->where('type', 'pengeluaran')
-            ->groupBy('price_list_id')
-            ->pluck('total_qty', 'price_list_id');
+            $purchases = Transaction::selectRaw('price_list_id, SUM(quantity) as total_qty')
+                ->where('type', 'pengeluaran')
+                ->groupBy('price_list_id')
+                ->pluck('total_qty', 'price_list_id');
+                
+            return ['sales' => $sales, 'purchases' => $purchases];
+        });
+
+        $sales = $aggregates['sales'];
+        $purchases = $aggregates['purchases'];
 
         $items->transform(function ($item) use ($sales, $purchases) {
             $item->qty_sales     = (int) ($sales[$item->id]     ?? 0);
@@ -137,6 +145,9 @@ class PriceListController extends Controller
                 ]);
             });
 
+            Cache::forget('pricelist_aggregates');
+            Cache::forget('dashboard_summary');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Penjualan berhasil disimpan',
@@ -181,6 +192,9 @@ class PriceListController extends Controller
                     'user_id' => $request->user()->id
                 ]);
             });
+
+            Cache::forget('pricelist_aggregates');
+            Cache::forget('dashboard_summary');
 
             return response()->json([
                 'success' => true,

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-24
+
+### ⚡ Performance Optimization (Post-Audit)
+
+#### Frontend
+- **Lazy Loading**: Migrated heavy React components (`LoginForm`, `Navbar`) to use `React.lazy()` and `<Suspense>` to reduce initial bundle size and improve load time.
+
+#### Backend
+- **Data Caching**: Implemented `Cache::remember()` in `PriceListController` (aggregates) and `TransactionController` (dashboard summary) with intelligent cache invalidation on data mutation (`Cache::forget`).
+
+---
+
 ## [3.0.0] - 2026-04-23
 
 ### 🚀 Major Changes — Full Architecture Modernization

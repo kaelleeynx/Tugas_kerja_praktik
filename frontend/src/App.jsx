@@ -3,14 +3,14 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { logout as apiLogout } from './services/api';
 import { setLogoutCallback } from './services/apiClient';
 
-import LoginForm from './components/LoginForm';
-import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Lazy load heavy components for better performance
+const LoginForm = React.lazy(() => import('./components/LoginForm'));
+const Navbar = React.lazy(() => import('./components/Navbar'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const TransactionForm = React.lazy(() => import('./components/TransactionForm'));
 const PriceList = React.lazy(() => import('./components/PriceList'));
@@ -87,13 +87,19 @@ function AppContent() {
 
   return (
     <div className="app">
-      {user && <Navbar onLogout={handleLogout} />}
+      {user && (
+        <Suspense fallback={null}>
+          <Navbar onLogout={handleLogout} />
+        </Suspense>
+      )}
       <main className="main">
         <Routes>
           {/* Guest Route */}
           <Route path="/login" element={
             <GuestRoute>
-              <LoginForm onLogin={handleLogin} />
+              <Suspense fallback={<LoadingSpinner message="Loading login..." />}>
+                <LoginForm onLogin={handleLogin} />
+              </Suspense>
             </GuestRoute>
           } />
 
