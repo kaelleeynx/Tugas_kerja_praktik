@@ -15,7 +15,7 @@ return new class extends Migration {
         });
 
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['owner', 'admin', 'staff'])->default('staff');
+            $table->string('role')->default('staff');
         });
     }
 
