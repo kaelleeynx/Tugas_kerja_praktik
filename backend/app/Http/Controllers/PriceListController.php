@@ -98,7 +98,7 @@ class PriceListController extends Controller
         if ($item->transactions()->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak dapat menghapus item yang memiliki transaksi'
+                'message' => 'Tidak dapat menghapus item yang memiliki nota'
             ], 400);
         }
 

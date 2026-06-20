@@ -205,7 +205,7 @@ export default function TransactionForm() {
         note,
       });
 
-      setMsg('Transaksi berhasil disimpan!');
+      setMsg('Nota berhasil disimpan!');
       setSelectedProduct(null);
       setQty(1);
       setPrice(0);
@@ -226,7 +226,7 @@ export default function TransactionForm() {
           )
         );
       }
-      setError(err.response?.data?.message || err.message || 'Gagal menyimpan transaksi');
+      setError(err.response?.data?.message || err.message || 'Gagal menyimpan nota');
     } finally {
       setSubmitting(false);
     }
@@ -239,9 +239,9 @@ export default function TransactionForm() {
 
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[var(--text-main)]">Input Transaksi</h2>
+        <h2 className="text-2xl font-bold text-[var(--text-main)]">Input Nota</h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Pilih produk, atur jumlah, lalu simpan transaksi.
+          Pilih produk, atur jumlah, lalu simpan nota.
         </p>
       </div>
 
@@ -296,7 +296,7 @@ export default function TransactionForm() {
           {/* ── Desktop: Sticky Sidebar ──────────────────────────────── */}
           <div className="hidden lg:block w-80 sticky top-20">
             <div className="card p-5 space-y-4">
-              <h3 className="text-sm font-bold text-[var(--text-main)]">Detail Transaksi</h3>
+              <h3 className="text-sm font-bold text-[var(--text-main)]">Detail Nota</h3>
               <TransactionPanelContent
                 type={type} setType={setType}
                 date={date} setDate={setDate}
@@ -328,7 +328,7 @@ export default function TransactionForm() {
               className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full
                 flex items-center justify-center shadow-lg"
               style={{ backgroundColor: 'var(--brand)', color: '#fff' }}
-              title="Buka Detail Transaksi"
+              title="Buka Detail Nota"
             >
               <div className="relative">
                 <CartIcon size={22} />
@@ -377,7 +377,7 @@ export default function TransactionForm() {
               <form onSubmit={handleSubmit} className="px-4 pb-8 pt-2 space-y-4">
                 {/* Sheet header */}
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[var(--text-main)]">Detail Transaksi</h3>
+                  <h3 className="text-sm font-bold text-[var(--text-main)]">Detail Nota</h3>
                   <button type="button" onClick={() => setSheetOpen(false)}
                     className="p-1.5 rounded-[var(--radius-default)] text-[var(--text-muted)]
                       hover:bg-[var(--bg-app)] transition-colors">
@@ -417,7 +417,7 @@ function TransactionPanelContent({
     <>
       {/* Transaction type */}
       <div>
-        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Jenis Transaksi</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Jenis Nota</label>
         <div className="flex border border-[var(--border-subtle)] rounded-[var(--radius-default)] overflow-hidden">
           {[{ value: 'penjualan', label: 'Penjualan' }, { value: 'pengeluaran', label: 'Pengeluaran' }].map((opt) => (
             <button key={opt.value} type="button" onClick={() => setType(opt.value)}
@@ -494,11 +494,7 @@ function TransactionPanelContent({
       {/* Summary */}
       <div className="summary-box-brand">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Total Bayar</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-sm)] capitalize"
-            style={{ backgroundColor: type === 'penjualan' ? 'var(--status-success-bg)' : 'var(--status-danger-bg)', color: type === 'penjualan' ? 'var(--status-success)' : 'var(--status-danger)' }}>
-            {type}
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)]">Total</span>
         </div>
         <p className="text-2xl lg:text-3xl font-bold font-mono tabular-nums leading-tight" style={{ color: 'var(--brand)' }}>
           {formatIDR(total)}
@@ -534,7 +530,7 @@ function TransactionPanelContent({
         {submitting ? (
           <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Menyimpan...</>
         ) : (
-          <><SaveIcon size={16} />Simpan Transaksi</>
+          <><SaveIcon size={16} />Simpan Nota</>
         )}
       </button>
     </>

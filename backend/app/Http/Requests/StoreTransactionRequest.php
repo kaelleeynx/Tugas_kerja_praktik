@@ -26,8 +26,8 @@ class StoreTransactionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'type.required'          => 'Jenis transaksi wajib diisi.',
-            'type.in'                => 'Jenis transaksi harus penjualan atau pengeluaran.',
+            'type.required'          => 'Jenis nota wajib diisi.',
+            'type.in'                => 'Jenis nota harus penjualan atau pengeluaran.',
             'date.required'          => 'Tanggal wajib diisi.',
             'date.before_or_equal'   => 'Tanggal tidak boleh di masa depan.',
             'price_list_id.required' => 'Produk wajib dipilih.',

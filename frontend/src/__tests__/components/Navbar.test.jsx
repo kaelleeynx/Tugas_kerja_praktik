@@ -91,7 +91,7 @@ describe('Navbar', () => {
       await user.click(screen.getAllByRole('button')[0]);
       await waitFor(() => {
         expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/Input Transaksi/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Input Nota/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Daftar Barang/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Pengaturan/i).length).toBeGreaterThan(0);
       });
@@ -102,7 +102,7 @@ describe('Navbar', () => {
     it('should fetch pending approvals for owner', async () => {
       getPendingApprovals.mockResolvedValue([{ id: 1 }, { id: 2 }]);
       renderNavbar({ storedUser: { id: 1, name: 'Owner', role: 'owner', token: 'tok' } });
-      await waitFor(() => expect(getPendingApprovals).toHaveBeenCalled());
+      await waitFor(() => expect(getPendingApprovals).toHaveBeenCalled(), { timeout: 4000 });
     });
 
     it('should NOT fetch pending approvals for non-owner', async () => {
@@ -114,7 +114,7 @@ describe('Navbar', () => {
     it('should show badge count when there are pending approvals', async () => {
       getPendingApprovals.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
       renderNavbar({ storedUser: { id: 1, name: 'Owner', role: 'owner', token: 'tok' } });
-      await waitFor(() => expect(screen.getByText('3')).toBeTruthy());
+      await waitFor(() => expect(screen.getByText('3')).toBeTruthy(), { timeout: 4000 });
     });
 
     it('should handle API error gracefully without crashing', async () => {

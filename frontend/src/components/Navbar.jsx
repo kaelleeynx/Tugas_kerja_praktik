@@ -9,7 +9,7 @@ import NotificationBell from './NotificationBell';
 
 const NAV_ITEMS = [
   { to: '/dashboard',    icon: 'dashboard',    label: 'Dashboard' },
-  { to: '/transactions', icon: 'plus',         label: 'Input Transaksi' },
+  { to: '/transactions', icon: 'plus',         label: 'Input Nota' },
   { to: '/pricelist',    icon: 'package',      label: 'Daftar Barang' },
 ];
 

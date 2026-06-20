@@ -88,7 +88,7 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil disimpan',
+                'message' => 'Nota berhasil disimpan',
                 'data' => new TransactionResource($transaction->load('priceList'))
             ], 201);
             
@@ -125,7 +125,7 @@ class TransactionController extends Controller
                 // Only owner or the transaction creator can delete
                 $user = request()->user();
                 if ($user->role !== 'owner' && $transaction->user_id !== $user->id) {
-                    throw new \Exception('Anda tidak memiliki izin untuk menghapus transaksi ini.');
+                    throw new \Exception('Anda tidak memiliki izin untuk menghapus nota ini.');
                 }
 
                 if ($transaction->price_list_id) {
@@ -147,12 +147,12 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil dihapus'
+                'message' => 'Nota berhasil dihapus'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus transaksi: ' . $e->getMessage()
+                'message' => 'Gagal menghapus nota: ' . $e->getMessage()
             ], 400);
         }
     }
@@ -166,7 +166,7 @@ class TransactionController extends Controller
                 // Only owner or the transaction creator can update
                 $user = $request->user();
                 if ($user->role !== 'owner' && $transaction->user_id !== $user->id) {
-                    throw new \Exception('Anda tidak memiliki izin untuk mengubah transaksi ini.');
+                    throw new \Exception('Anda tidak memiliki izin untuk mengubah nota ini.');
                 }
 
                 $oldQty = $transaction->quantity;
@@ -198,7 +198,7 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaksi berhasil diperbarui',
+                'message' => 'Nota berhasil diperbarui',
                 'data' => new TransactionResource($transaction->load('priceList'))
             ]);
             
