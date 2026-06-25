@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../services/api', () => ({
@@ -99,22 +99,42 @@ describe('Navbar', () => {
   });
 
   describe('pending approvals badge', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should fetch pending approvals for owner', async () => {
       getPendingApprovals.mockResolvedValue([{ id: 1 }, { id: 2 }]);
       renderNavbar({ storedUser: { id: 1, name: 'Owner', role: 'owner', token: 'tok' } });
-      await waitFor(() => expect(getPendingApprovals).toHaveBeenCalled());
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      await act(async () => {});
+      expect(getPendingApprovals).toHaveBeenCalled();
     });
 
     it('should NOT fetch pending approvals for non-owner', async () => {
       renderNavbar({ storedUser: { id: 2, name: 'Staff', role: 'staff', token: 'tok' } });
-      await waitFor(() => expect(screen.queryByText(/Laporan/i)).toBeNull());
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      await act(async () => {});
+      expect(screen.queryByText(/Laporan/i)).toBeNull();
       expect(getPendingApprovals).not.toHaveBeenCalled();
     });
 
     it('should show badge count when there are pending approvals', async () => {
       getPendingApprovals.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
       renderNavbar({ storedUser: { id: 1, name: 'Owner', role: 'owner', token: 'tok' } });
-      await waitFor(() => expect(screen.getByText('3')).toBeTruthy());
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      await act(async () => {});
+      expect(screen.getByText('3')).toBeTruthy();
     });
 
     it('should handle API error gracefully without crashing', async () => {

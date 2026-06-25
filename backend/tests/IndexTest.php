@@ -59,13 +59,14 @@ class IndexTest extends BaseTestCase
         ['name' => 'TransactionTest',        'type' => 'Feature', 'tests' => 11, 'covers' => 'Transaction endpoints'],
         ['name' => 'PriceListTest',          'type' => 'Feature', 'tests' => 12, 'covers' => 'PriceList endpoints'],
         ['name' => 'ApprovalTest',           'type' => 'Feature', 'tests' => 8,  'covers' => 'Approval endpoints'],
+        ['name' => 'NotificationTest',       'type' => 'Feature', 'tests' => 7,  'covers' => 'Notification endpoints'],
         ['name' => 'EndToEndTest',           'type' => 'Feature', 'tests' => 1,  'covers' => 'Full app flow'],
     ];
 
     /** @test */
     public function suite_registry_has_correct_count(): void
     {
-        $this->assertCount(8, $this->suites);
+        $this->assertCount(9, $this->suites);
     }
 
     /** @test */
