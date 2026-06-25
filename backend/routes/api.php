@@ -43,24 +43,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users Management — FIX S2/S3: pindah ke owner-only group di bawah
     // GET /users, /users/search, /users/{id} sekarang dilindungi role:owner
 
-    // Transactions — FIX A1: specific routes BEFORE /{id}
+    // Transactions — READ (any authenticated user)
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::get('/transactions/statistics', [TransactionController::class, 'getStatistics']);   // was after {id}
     Route::get('/transactions/daily', [TransactionController::class, 'getDailyStatistics']);   // was after {id}
     Route::get('/transactions/export', [TransactionController::class, 'export']);              // FIX A2: GET not POST
-    Route::post('/transactions', [TransactionController::class, 'store']);
     Route::get('/transactions/{id}', [TransactionController::class, 'show']);
-    Route::put('/transactions/{id}', [TransactionController::class, 'update']);
-    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 
-    // Price List Management
+    // Price List Management — READ (any authenticated user)
     Route::get('/price-list', [PriceListController::class, 'index']);
-    Route::post('/price-list', [PriceListController::class, 'store']);
     Route::get('/price-list/{id}', [PriceListController::class, 'show']);
-    Route::put('/price-list/{id}', [PriceListController::class, 'update']);
-    Route::delete('/price-list/{id}', [PriceListController::class, 'destroy']);
-    Route::post('/price-list/{id}/sale', [PriceListController::class, 'sale']);
-    Route::post('/price-list/{id}/restock', [PriceListController::class, 'restock']);
+
+    // Transactions & Price List — WRITE (Admin & Owner Only)
+    Route::middleware('role:admin,owner')->group(function () {
+        Route::post('/transactions', [TransactionController::class, 'store']);
+        Route::put('/transactions/{id}', [TransactionController::class, 'update']);
+        Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+        Route::post('/price-list', [PriceListController::class, 'store']);
+        Route::put('/price-list/{id}', [PriceListController::class, 'update']);
+        Route::delete('/price-list/{id}', [PriceListController::class, 'destroy']);
+        Route::post('/price-list/{id}/sale', [PriceListController::class, 'sale']);
+        Route::post('/price-list/{id}/restock', [PriceListController::class, 'restock']);
+    });
 
     // Notifications — specific routes BEFORE /{id}
     Route::get('/notifications', [NotificationController::class, 'getNotifications']);

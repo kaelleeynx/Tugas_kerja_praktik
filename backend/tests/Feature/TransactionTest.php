@@ -20,6 +20,7 @@ class TransactionTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+    private User $admin;
     private User $staff;
     private PriceList $item;
 
@@ -27,6 +28,7 @@ class TransactionTest extends TestCase
     {
         parent::setUp();
         $this->owner = User::factory()->owner()->create();
+        $this->admin = User::factory()->admin()->create();
         $this->staff = User::factory()->staff()->create();
         $this->item  = PriceList::factory()->create(['price' => 10000, 'stock' => 100]);
     }
@@ -74,9 +76,9 @@ class TransactionTest extends TestCase
     // ─── POST /api/transactions ───────────────────────────────────────────
 
     /** @test */
-    public function staff_can_create_sale_transaction_and_stock_decrements(): void
+    public function admin_can_create_sale_transaction_and_stock_decrements(): void
     {
-        $response = $this->actingAs($this->staff)->postJson('/api/transactions', [
+        $response = $this->actingAs($this->admin)->postJson('/api/transactions', [
             'type'          => 'penjualan',
             'date'          => now()->toDateString(),
             'price_list_id' => $this->item->id,
@@ -94,9 +96,9 @@ class TransactionTest extends TestCase
     }
 
     /** @test */
-    public function staff_can_create_expense_transaction_and_stock_increments(): void
+    public function admin_can_create_expense_transaction_and_stock_increments(): void
     {
-        $response = $this->actingAs($this->staff)->postJson('/api/transactions', [
+        $response = $this->actingAs($this->admin)->postJson('/api/transactions', [
             'type'          => 'pengeluaran',
             'date'          => now()->toDateString(),
             'price_list_id' => $this->item->id,
@@ -113,11 +115,27 @@ class TransactionTest extends TestCase
     }
 
     /** @test */
+    public function staff_cannot_create_transaction_and_gets_403(): void
+    {
+        $response = $this->actingAs($this->staff)->postJson('/api/transactions', [
+            'type'          => 'penjualan',
+            'date'          => now()->toDateString(),
+            'price_list_id' => $this->item->id,
+            'quantity'      => 5,
+            'price'         => 10000,
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+    }
+
+    /** @test */
     public function sale_fails_when_stock_is_insufficient(): void
     {
         $lowStockItem = PriceList::factory()->create(['stock' => 3, 'price' => 5000]);
 
-        $response = $this->actingAs($this->staff)->postJson('/api/transactions', [
+        $response = $this->actingAs($this->admin)->postJson('/api/transactions', [
             'type'          => 'penjualan',
             'date'          => now()->toDateString(),
             'price_list_id' => $lowStockItem->id,
@@ -135,7 +153,7 @@ class TransactionTest extends TestCase
     /** @test */
     public function transaction_total_is_calculated_as_quantity_times_price(): void
     {
-        $response = $this->actingAs($this->staff)->postJson('/api/transactions', [
+        $response = $this->actingAs($this->admin)->postJson('/api/transactions', [
             'type'          => 'penjualan',
             'date'          => now()->toDateString(),
             'price_list_id' => $this->item->id,
@@ -150,7 +168,7 @@ class TransactionTest extends TestCase
     /** @test */
     public function transaction_requires_valid_fields(): void
     {
-        $response = $this->actingAs($this->staff)->postJson('/api/transactions', []);
+        $response = $this->actingAs($this->admin)->postJson('/api/transactions', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['type', 'date', 'price_list_id', 'quantity', 'price']);
@@ -182,7 +200,7 @@ class TransactionTest extends TestCase
     }
 
     /** @test */
-    public function staff_cannot_update_another_users_transaction(): void
+    public function staff_cannot_update_any_transaction_and_gets_403(): void
     {
         $otherStaff  = User::factory()->staff()->create();
         $transaction = Transaction::factory()->sale()->create([
@@ -197,7 +215,7 @@ class TransactionTest extends TestCase
             'quantity' => 5,
         ]);
 
-        $response->assertStatus(400)
+        $response->assertStatus(403)
             ->assertJsonPath('success', false);
     }
 
@@ -227,7 +245,7 @@ class TransactionTest extends TestCase
     }
 
     /** @test */
-    public function staff_cannot_delete_another_users_transaction(): void
+    public function staff_cannot_delete_any_transaction_and_gets_403(): void
     {
         $otherStaff  = User::factory()->staff()->create();
         $transaction = Transaction::factory()->sale()->create([
@@ -240,7 +258,7 @@ class TransactionTest extends TestCase
 
         $response = $this->actingAs($this->staff)->deleteJson("/api/transactions/{$transaction->id}");
 
-        $response->assertStatus(400)
+        $response->assertStatus(403)
             ->assertJsonPath('success', false);
 
         $this->assertDatabaseHas('transactions', ['id' => $transaction->id]);

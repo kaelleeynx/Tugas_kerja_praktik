@@ -109,7 +109,7 @@ function ProductCard({ product, onSelect, isSelected }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────
 
-export default function TransactionForm() {
+export default function TransactionForm({ readOnly = false }) {
   const [type, setType]               = useState('penjualan');
   const [date, setDate]               = useState(getNowDate());
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -172,6 +172,7 @@ export default function TransactionForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     setError('');
 
     if (!selectedProduct) {
@@ -245,6 +246,13 @@ export default function TransactionForm() {
         </p>
       </div>
 
+      {readOnly && (
+        <div className="mb-6 p-4 rounded-[var(--radius-card)] flex items-center gap-2.5 text-sm font-medium"
+          style={{ backgroundColor: 'var(--status-warning-bg)', color: 'var(--status-warning)' }}>
+          <span>⚠️ Mode Hanya Lihat — Staff tidak dapat membuat atau mengubah transaksi.</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         {/* On mobile: single column. On lg: side-by-side */}
         <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -307,6 +315,7 @@ export default function TransactionForm() {
                 total={total} msg={msg} error={error}
                 submitting={submitting}
                 onClose={null}
+                readOnly={readOnly}
               />
             </div>
           </div>
@@ -395,6 +404,7 @@ export default function TransactionForm() {
                   total={total} msg={msg} error={error}
                   submitting={submitting}
                   onClose={() => setSheetOpen(false)}
+                  readOnly={readOnly}
                 />
               </form>
             </motion.div>
@@ -412,6 +422,7 @@ function TransactionPanelContent({
   selectedProduct, setSelectedProduct, setPrice,
   qty, setQty, price, setError,
   note, setNote, total, msg, error, submitting,
+  onClose, readOnly = false,
 }) {
   return (
     <>
@@ -527,16 +538,18 @@ function TransactionPanelContent({
       </AnimatePresence>
 
       {/* Submit */}
-      <button type="submit" disabled={submitting || !selectedProduct}
-        className="w-full h-11 flex items-center justify-center gap-2 text-sm font-bold
-          rounded-[var(--radius-default)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--brand)', color: '#fff' }}>
-        {submitting ? (
-          <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Menyimpan...</>
-        ) : (
-          <><SaveIcon size={16} />Simpan Transaksi</>
-        )}
-      </button>
+      {!readOnly && (
+        <button type="submit" disabled={submitting || !selectedProduct}
+          className="w-full h-11 flex items-center justify-center gap-2 text-sm font-bold
+            rounded-[var(--radius-default)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: 'var(--brand)', color: '#fff' }}>
+          {submitting ? (
+            <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Menyimpan...</>
+          ) : (
+            <><SaveIcon size={16} />Simpan Nota</>
+          )}
+        </button>
+      )}
     </>
   );
 }

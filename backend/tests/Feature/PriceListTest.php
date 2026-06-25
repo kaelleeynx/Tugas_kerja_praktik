@@ -22,12 +22,14 @@ class PriceListTest extends TestCase
     use RefreshDatabase;
 
     private User $owner;
+    private User $admin;
     private User $staff;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->owner = User::factory()->owner()->create();
+        $this->admin = User::factory()->admin()->create();
         $this->staff = User::factory()->staff()->create();
     }
 
@@ -149,6 +151,37 @@ class PriceListTest extends TestCase
         $this->assertDatabaseHas('price_lists', ['id' => $item->id]);
     }
 
+    /** @test */
+    public function staff_cannot_perform_write_actions_and_gets_403(): void
+    {
+        $item = PriceList::factory()->create();
+
+        // 1. Create item
+        $this->actingAs($this->staff)->postJson('/api/price-list', [])
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+
+        // 2. Update item
+        $this->actingAs($this->staff)->putJson("/api/price-list/{$item->id}", [])
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+
+        // 3. Delete item
+        $this->actingAs($this->staff)->deleteJson("/api/price-list/{$item->id}")
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+
+        // 4. Sale item
+        $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/sale", [])
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+
+        // 5. Restock item
+        $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/restock", [])
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Hanya admin atau owner yang dapat mengakses fitur ini.');
+    }
+
     // ─── POST /api/price-list/{id}/sale ──────────────────────────────────
 
     /** @test */
@@ -156,7 +189,7 @@ class PriceListTest extends TestCase
     {
         $item = PriceList::factory()->create(['price' => 20000, 'stock' => 30]);
 
-        $response = $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/sale", [
+        $response = $this->actingAs($this->admin)->postJson("/api/price-list/{$item->id}/sale", [
             'quantity' => 5,
         ]);
 
@@ -177,7 +210,7 @@ class PriceListTest extends TestCase
     {
         $item = PriceList::factory()->outOfStock()->create(['price' => 5000]);
 
-        $response = $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/sale", [
+        $response = $this->actingAs($this->admin)->postJson("/api/price-list/{$item->id}/sale", [
             'quantity' => 1,
         ]);
 
@@ -192,7 +225,7 @@ class PriceListTest extends TestCase
     {
         $item = PriceList::factory()->create(['price' => 10000, 'stock' => 10]);
 
-        $response = $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/sale", []);
+        $response = $this->actingAs($this->admin)->postJson("/api/price-list/{$item->id}/sale", []);
 
         $response->assertStatus(200);
         $this->assertEquals(9, $item->fresh()->stock);
@@ -205,7 +238,7 @@ class PriceListTest extends TestCase
     {
         $item = PriceList::factory()->create(['price' => 8000, 'stock' => 10]);
 
-        $response = $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/restock", [
+        $response = $this->actingAs($this->admin)->postJson("/api/price-list/{$item->id}/restock", [
             'quantity' => 20,
         ]);
 
@@ -226,7 +259,7 @@ class PriceListTest extends TestCase
     {
         $item = PriceList::factory()->create(['price' => 5000, 'stock' => 5]);
 
-        $response = $this->actingAs($this->staff)->postJson("/api/price-list/{$item->id}/restock", []);
+        $response = $this->actingAs($this->admin)->postJson("/api/price-list/{$item->id}/restock", []);
 
         $response->assertStatus(200);
         $this->assertEquals(6, $item->fresh()->stock);

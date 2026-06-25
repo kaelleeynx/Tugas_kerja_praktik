@@ -24,6 +24,7 @@ const PriceListTable = ({
   startEdit,
   handleSale,
   handleRestock,
+  readOnly = false,
 }) => {
   if (filteredItems.length === 0) {
     return (
@@ -138,74 +139,78 @@ const PriceListTable = ({
 
                 {/* Aksi */}
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5 min-w-[120px]">
-                    {editId === item.id ? (
-                      <>
-                        <button
-                          onClick={() => saveEdit(item.id)}
-                          className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
-                            transition-colors"
-                          style={{
-                            backgroundColor: 'var(--status-success)',
-                            color: '#fff',
-                          }}
-                        >
-                          Simpan
-                        </button>
-                        <button
-                          onClick={() => { setEditStock(item.stock); }}
-                          className="h-8 px-2 text-xs font-medium rounded-[var(--radius-default)]
-                            text-[var(--text-muted)] border border-[var(--border-subtle)]
-                            hover:bg-[var(--bg-app)] transition-colors"
-                        >
-                          Batal
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Edit icon — always visible on touch, hover-only on desktop */}
-                        <button
-                          onClick={() => startEdit(item)}
-                          title="Edit Stok"
-                          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-default)]
-                            text-[var(--text-muted)] hover:text-[var(--text-main)]
-                            hover:bg-[var(--bg-app)] transition-colors
-                            md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
-                        >
-                          <EditIcon size={14} />
-                        </button>
+                  {readOnly ? (
+                    <span className="text-[var(--text-muted)] font-mono">—</span>
+                  ) : (
+                    <div className="flex items-center gap-1.5 min-w-[120px]">
+                      {editId === item.id ? (
+                        <>
+                          <button
+                            onClick={() => saveEdit(item.id)}
+                            className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
+                              transition-colors"
+                            style={{
+                              backgroundColor: 'var(--status-success)',
+                              color: '#fff',
+                            }}
+                          >
+                            Simpan
+                          </button>
+                          <button
+                            onClick={() => { setEditStock(item.stock); }}
+                            className="h-8 px-2 text-xs font-medium rounded-[var(--radius-default)]
+                              text-[var(--text-muted)] border border-[var(--border-subtle)]
+                              hover:bg-[var(--bg-app)] transition-colors"
+                          >
+                            Batal
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Edit icon — always visible on touch, hover-only on desktop */}
+                          <button
+                            onClick={() => startEdit(item)}
+                            title="Edit Stok"
+                            className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-default)]
+                              text-[var(--text-muted)] hover:text-[var(--text-main)]
+                              hover:bg-[var(--bg-app)] transition-colors
+                              md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+                          >
+                            <EditIcon size={14} />
+                          </button>
 
-                        {/* Jual */}
-                        <button
-                          onClick={() => handleSale(item.id)}
-                          disabled={item.stock === 0}
-                          className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
-                            transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-                            min-w-[48px]"
-                          style={{
-                            backgroundColor: 'var(--brand)',
-                            color: '#fff',
-                          }}
-                        >
-                          Jual
-                        </button>
+                          {/* Jual */}
+                          <button
+                            onClick={() => handleSale(item.id)}
+                            disabled={item.stock === 0}
+                            className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
+                              transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+                              min-w-[48px]"
+                            style={{
+                              backgroundColor: 'var(--brand)',
+                              color: '#fff',
+                            }}
+                          >
+                            Jual
+                          </button>
 
-                        {/* Restock */}
-                        <button
-                          onClick={() => handleRestock(item.id)}
-                          className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
-                            transition-colors min-w-[60px]"
-                          style={{
-                            backgroundColor: 'var(--status-success-bg)',
-                            color: 'var(--status-success)',
-                            border: '1px solid var(--status-success)',
-                          }}
-                        >
-                          Restock
-                        </button>
-                      </>
-                    )}
-                  </div>
+                          {/* Restock */}
+                          <button
+                            onClick={() => handleRestock(item.id)}
+                            className="h-8 px-3 text-xs font-semibold rounded-[var(--radius-default)]
+                              transition-colors min-w-[60px]"
+                            style={{
+                              backgroundColor: 'var(--status-success-bg)',
+                              color: 'var(--status-success)',
+                              border: '1px solid var(--status-success)',
+                            }}
+                          >
+                            Restock
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

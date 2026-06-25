@@ -15,7 +15,7 @@ class CheckRole
      * @param  string  $role
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
-    public function handle(Request $request, Closure $next, $role)
+    public function handle(Request $request, Closure $next, ...$roles)
     {
         if (!auth()->check()) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -23,11 +23,12 @@ class CheckRole
 
         $user = auth()->user();
         
-        // Check if user has the required role
-        if ($user->role !== $role) {
+        // Check if user has one of the required roles
+        if (!in_array($user->role, $roles)) {
+            $roleString = implode(' atau ', $roles);
             return response()->json([
                 'success' => false,
-                'message' => "Anda tidak memiliki izin. Hanya {$role} yang dapat mengakses fitur ini."
+                'message' => "Hanya {$roleString} yang dapat mengakses fitur ini."
             ], 403);
         }
 

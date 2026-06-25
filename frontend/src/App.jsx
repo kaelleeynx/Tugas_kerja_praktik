@@ -115,7 +115,7 @@ function AppContent() {
           <Route path="/transactions" element={
             <ProtectedRoute>
               <Suspense fallback={<LoadingSpinner message="Loading transaction form..." />}>
-                <TransactionForm />
+                <TransactionForm readOnly={user?.role === 'staff'} />
               </Suspense>
             </ProtectedRoute>
           } />
@@ -123,7 +123,7 @@ function AppContent() {
           <Route path="/pricelist" element={
             <ProtectedRoute>
               <Suspense fallback={<LoadingSpinner message="Loading price list..." />}>
-                <PriceList />
+                <PriceList readOnly={user?.role === 'staff'} />
               </Suspense>
             </ProtectedRoute>
           } />

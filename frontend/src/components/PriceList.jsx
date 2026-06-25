@@ -66,7 +66,7 @@ function PriceListSkeleton() {
 
 // ─── Main Component ───────────────────────────────────────────────────────
 
-const PriceList = () => {
+const PriceList = ({ readOnly = false }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -184,6 +184,13 @@ const PriceList = () => {
         </p>
       </div>
 
+      {readOnly && (
+        <div className="mb-6 p-4 rounded-[var(--radius-card)] flex items-center gap-2.5 text-sm font-medium"
+          style={{ backgroundColor: 'var(--status-warning-bg)', color: 'var(--status-warning)' }}>
+          <span>⚠️ Mode Hanya Lihat — Staff tidak dapat mengubah data barang.</span>
+        </div>
+      )}
+
       {/* ── Overview ────────────────────────────────────────────────── */}
       <div className="pricelist-animate" style={{ opacity: 0 }}>
         <PriceListOverview items={items} />
@@ -269,6 +276,7 @@ const PriceList = () => {
           startEdit={startEdit}
           handleSale={handleSale}
           handleRestock={handleRestock}
+          readOnly={readOnly}
         />
       </div>
     </div>
