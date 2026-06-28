@@ -162,19 +162,19 @@ describe('Dashboard', () => {
     it('should show empty state when no transactions', async () => {
       getTransactions.mockResolvedValue([]);
       renderDashboard();
-      await waitFor(() => expect(screen.getByText(/Tidak ada transaksi/i)).toBeTruthy());
+      await waitFor(() => expect(screen.getByText(/Tidak ada nota/i)).toBeTruthy());
     });
 
     it('should show delete button for owner role', async () => {
       getTransactions.mockResolvedValue(mockTransactions);
       renderDashboard({ id: 1, name: 'Zandi', role: 'owner', token: 'tok' });
-      await waitFor(() => expect(screen.getAllByTitle(/Hapus Transaksi/i).length).toBeGreaterThan(0));
+      await waitFor(() => expect(screen.getAllByTitle(/Hapus Nota/i).length).toBeGreaterThan(0));
     });
 
     it('should NOT show delete button for staff role', async () => {
       getTransactions.mockResolvedValue(mockTransactions);
       renderDashboard({ id: 2, name: 'Staff', role: 'staff', token: 'tok' });
-      await waitFor(() => expect(screen.queryByTitle(/Hapus Transaksi/i)).toBeNull());
+      await waitFor(() => expect(screen.queryByTitle(/Hapus Nota/i)).toBeNull());
     });
   });
 
@@ -182,7 +182,7 @@ describe('Dashboard', () => {
     it('should not crash when API fails', async () => {
       getTransactions.mockRejectedValue(new Error('Network error'));
       expect(() => renderDashboard()).not.toThrow();
-      await waitFor(() => expect(screen.getByText(/Tidak ada transaksi/i)).toBeTruthy());
+      await waitFor(() => expect(screen.getByText(/Tidak ada nota/i)).toBeTruthy());
     });
   });
 });

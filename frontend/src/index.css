@@ -339,7 +339,7 @@
 
 /* ─── Navbar Layout ──────────────────────────────────────────────────────── */
 @media (min-width: 768px) {
-  body { padding-left: 80px; padding-top: 64px; }
+  body { padding-left: 208px; padding-top: 64px; }
 }
 @media (max-width: 767px) {
   body { padding-top: 64px; }

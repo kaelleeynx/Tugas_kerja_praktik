@@ -209,7 +209,7 @@ export default function ReportView() {
       <div>
         <h2 className="text-2xl font-bold text-[var(--text-main)]">Generate Laporan</h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Pilih rentang tanggal lalu generate laporan transaksi.
+          Pilih rentang tanggal lalu generate laporan nota.
         </p>
       </div>
 
@@ -315,7 +315,7 @@ export default function ReportView() {
                   color: 'var(--brand)',
                 }}
               >
-                {report.filtered.length} transaksi
+                {report.filtered.length} nota
               </span>
             </div>
 
@@ -350,7 +350,7 @@ export default function ReportView() {
               <div className="card p-10 flex flex-col items-center gap-3">
                 <FileIcon size={36} className="text-[var(--text-muted)]" />
                 <p className="text-sm text-[var(--text-muted)]">
-                  Tidak ada transaksi dalam rentang tanggal ini.
+                  Tidak ada nota dalam rentang tanggal ini.
                 </p>
               </div>
             ) : (

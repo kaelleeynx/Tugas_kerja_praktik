@@ -76,11 +76,15 @@ describe('Navbar', () => {
       });
     });
 
-    it('should NOT show owner-only nav items for admin role', async () => {
+    it('should show Laporan but NOT owner-only nav items (Anggota/Inbox) for admin role', async () => {
+      const user = userEvent.setup();
       renderNavbar({ storedUser: { id: 3, name: 'Admin', role: 'admin', token: 'tok' } });
+      await waitFor(() => expect(screen.getAllByText(/Toko Besi Serta Guna/i).length).toBeGreaterThan(0));
+      await user.click(screen.getAllByRole('button')[0]);
       await waitFor(() => {
-        expect(screen.queryByText(/Laporan/i)).toBeNull();
+        expect(screen.getAllByText(/Laporan/i).length).toBeGreaterThan(0);
         expect(screen.queryByText(/Anggota/i)).toBeNull();
+        expect(screen.queryByText(/Inbox/i)).toBeNull();
       });
     });
 
@@ -91,7 +95,7 @@ describe('Navbar', () => {
       await user.click(screen.getAllByRole('button')[0]);
       await waitFor(() => {
         expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/Input Transaksi/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Input Nota/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Daftar Barang/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/Pengaturan/i).length).toBeGreaterThan(0);
       });
@@ -178,8 +182,8 @@ describe('Navbar', () => {
       renderNavbar({ storedUser: { id: 1, name: 'Zandi', role: 'staff', token: 'tok' }, onLogout });
       await waitFor(() => expect(screen.getAllByText(/Toko Besi Serta Guna/i).length).toBeGreaterThan(0));
       await user.click(screen.getAllByRole('button')[0]);
-      await waitFor(() => expect(screen.getByText(/Logout/i)).toBeTruthy());
-      await user.click(screen.getByText(/Logout/i));
+      await waitFor(() => expect(screen.getAllByText(/Logout/i).length).toBeGreaterThan(0));
+      await user.click(screen.getAllByText(/Logout/i)[0]);
       expect(onLogout).toHaveBeenCalledOnce();
     });
   });

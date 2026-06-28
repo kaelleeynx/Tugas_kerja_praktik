@@ -52,7 +52,7 @@ router.post('/', verifyToken, (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Transaksi berhasil ditambahkan',
+            message: 'Nota berhasil ditambahkan',
             data: {
                 id: results.insertId,
                 type,
@@ -85,13 +85,13 @@ router.delete('/:id', verifyToken, (req, res) => {
         if (results.affectedRows === 0) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'Transaksi tidak ditemukan atau Anda tidak memiliki akses' 
+                message: 'Nota tidak ditemukan atau Anda tidak memiliki akses' 
             });
         }
 
         res.json({ 
             success: true, 
-            message: 'Transaksi berhasil dihapus' 
+            message: 'Nota berhasil dihapus' 
         });
     });
 });

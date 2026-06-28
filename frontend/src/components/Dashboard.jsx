@@ -208,7 +208,7 @@ export default function Dashboard() {
       }
     }, 5000);
 
-    toast('Transaksi dihapus', {
+    toast('Nota dihapus', {
       duration: 5000,
       action: {
         label: 'Batal',
@@ -451,7 +451,7 @@ export default function Dashboard() {
 
         {/* Recent Transactions */}
         <div className="card p-5">
-          <h3 className="text-sm font-bold text-[var(--text-main)] mb-4">Transaksi Terbaru</h3>
+          <h3 className="text-sm font-bold text-[var(--text-main)] mb-4">Nota Terbaru</h3>
 
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-52 gap-3">
@@ -461,7 +461,7 @@ export default function Dashboard() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              <p className="text-sm text-[var(--text-muted)]">Tidak ada transaksi untuk ditampilkan.</p>
+              <p className="text-sm text-[var(--text-muted)]">Tidak ada nota untuk ditampilkan.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -528,8 +528,8 @@ export default function Dashboard() {
                         <td className="py-2.5 text-center">
                           <button
                             onClick={() => handleDelete(t.id)}
-                            aria-label="Hapus transaksi"
-                            title="Hapus Transaksi"
+                            aria-label="Hapus nota"
+                            title="Hapus Nota"
                             className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-default)]
                               text-[var(--text-muted)] hover:text-[var(--status-danger)]
                               hover:bg-[var(--status-danger-bg)] transition-colors"

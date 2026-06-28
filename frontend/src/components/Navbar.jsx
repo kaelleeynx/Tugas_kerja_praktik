@@ -9,15 +9,22 @@ import NotificationBell from './NotificationBell';
 
 const NAV_ITEMS = [
   { to: '/dashboard',    icon: 'dashboard',    label: 'Dashboard' },
-  { to: '/transactions', icon: 'plus',         label: 'Input Transaksi' },
+  { to: '/transactions', icon: 'plus',         label: 'Input Nota' },
   { to: '/pricelist',    icon: 'package',      label: 'Daftar Barang' },
 ];
 
-const OWNER_NAV_ITEMS = [
+// Laporan — accessible by admin & owner
+const ADMIN_NAV_ITEMS = [
   { to: '/reports',   icon: 'file',  label: 'Laporan' },
+];
+
+// Anggota & Inbox — owner only
+const OWNER_NAV_ITEMS = [
   { to: '/users',     icon: 'users', label: 'Anggota' },
   { to: '/approvals', icon: 'inbox', label: 'Inbox', badge: true },
 ];
+
+const isAdminOrOwner = (role) => role === 'owner' || role === 'admin';
 
 // ─── Main Component ───────────────────────────────────────────────────────
 
@@ -66,6 +73,7 @@ export default function Navbar({ onLogout }) {
 
   const allNavItems = [
     ...NAV_ITEMS,
+    ...(isAdminOrOwner(user?.role) ? ADMIN_NAV_ITEMS : []),
     ...(user?.role === 'owner' ? OWNER_NAV_ITEMS : []),
   ];
 
@@ -149,58 +157,61 @@ export default function Navbar({ onLogout }) {
       )}
 
       {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-20 z-50 flex-col
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-52 z-50 flex-col
         bg-[var(--bg-app)] border-r border-[var(--border-subtle)]">
 
         {/* Logo mark */}
-        <div className="h-16 flex items-center justify-center border-b border-[var(--border-subtle)]">
+        <div className="h-16 flex items-center gap-3 px-4 border-b border-[var(--border-subtle)]">
           <div className="w-9 h-9 rounded-[var(--radius-card)] flex items-center justify-center
-            bg-[var(--brand)] text-white font-bold text-sm select-none">
+            bg-[var(--brand)] text-white font-bold text-sm select-none flex-shrink-0">
             TB
           </div>
+          <span className="text-sm font-bold text-[var(--text-main)] truncate">Toko Besi</span>
         </div>
 
         {/* Nav items */}
-        <nav className="flex flex-col gap-1 flex-1 px-2 py-3">
+        <nav className="flex flex-col gap-1 flex-1 px-3 py-3">
           {allNavItems.map((item) => (
             <DesktopNavItem
               key={item.to}
               to={item.to}
-              icon={<NavIcon name={item.icon} size={20} />}
-              title={item.label}
+              icon={<NavIcon name={item.icon} size={18} />}
+              label={item.label}
               badge={item.badge ? pendingCount : 0}
             />
           ))}
         </nav>
 
         {/* Bottom actions */}
-        <div className="flex flex-col gap-1 px-2 py-3 border-t border-[var(--border-subtle)]">
+        <div className="flex flex-col gap-1 px-3 py-3 border-t border-[var(--border-subtle)]">
           <DesktopNavItem
             to="/settings"
-            icon={<NavIcon name="settings" size={20} />}
-            title="Pengaturan"
+            icon={<NavIcon name="settings" size={18} />}
+            label="Pengaturan"
           />
 
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-            className="w-full h-10 flex items-center justify-center rounded-[var(--radius-default)]
+            className="w-full h-10 flex items-center gap-3 px-3 rounded-[var(--radius-default)]
               text-[var(--text-muted)] hover:text-[var(--text-main)]
-              hover:bg-[var(--bg-surface)] transition-colors"
+              hover:bg-[var(--bg-surface)] transition-colors text-sm font-medium"
           >
-            {theme === 'light' ? <MoonIcon size={20} /> : <SunIcon size={20} />}
+            {theme === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
           </button>
 
           {/* Logout */}
           <button
             onClick={onLogout}
             title="Logout"
-            className="w-full h-10 flex items-center justify-center rounded-[var(--radius-default)]
+            className="w-full h-10 flex items-center gap-3 px-3 rounded-[var(--radius-default)]
               text-[var(--text-muted)] hover:text-[var(--status-danger)]
-              hover:bg-[var(--status-danger-bg)] transition-colors"
+              hover:bg-[var(--status-danger-bg)] transition-colors text-sm font-medium"
           >
-            <NavIcon name="logout" size={20} />
+            <NavIcon name="logout" size={18} />
+            <span>Logout</span>
           </button>
         </div>
 
@@ -220,7 +231,7 @@ export default function Navbar({ onLogout }) {
       </aside>
 
       {/* ── Desktop Topbar ────────────────────────────────────────────── */}
-      <header className="hidden md:flex fixed top-0 left-20 right-0 h-16 z-50
+      <header className="hidden md:flex fixed top-0 left-52 right-0 h-16 z-50
         bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]
         items-center justify-between px-6">
 
@@ -251,13 +262,13 @@ export default function Navbar({ onLogout }) {
 
 // ─── Desktop Nav Item ─────────────────────────────────────────────────────
 
-function DesktopNavItem({ to, icon, title, badge = 0 }) {
+function DesktopNavItem({ to, icon, label, badge = 0 }) {
   return (
     <NavLink
       to={to}
-      title={title}
+      title={label}
       className={({ isActive }) =>
-        `relative w-full h-10 flex items-center justify-center
+        `relative w-full h-10 flex items-center gap-3 px-3
          rounded-[var(--radius-default)] transition-colors
          ${isActive
            ? 'bg-[var(--brand-muted)] text-[var(--brand)] border-l-[3px] border-[var(--brand)]'
@@ -265,9 +276,10 @@ function DesktopNavItem({ to, icon, title, badge = 0 }) {
          }`
       }
     >
-      {icon}
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="text-sm font-medium truncate">{label}</span>
       {badge > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1
+        <span className="ml-auto min-w-[18px] h-[18px] px-1
           flex items-center justify-center rounded-full
           bg-[var(--status-danger)] text-white text-[10px] font-bold leading-none">
           {badge > 9 ? '9+' : badge}
